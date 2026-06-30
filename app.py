@@ -10,183 +10,306 @@ from src.data_loader import StockDataLoader
 from src.indicators import calculate_technical_indicators
 from src.scoring import calculate_score
 from src.storage import AnalysisStorage
+from src.stock_list import IDX_POPULAR_STOCKS
 
 # Set page configuration with a modern title and wide layout
 st.set_page_config(
-    page_title="Smart Saham - ID Stock Screener & Recommendation Dashboard",
-    page_icon="📈",
+    page_title="Smart Saham Premium - Portal Screening Saham IDX",
+    page_icon="👑",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for rich aesthetics and modern card styling
+# Custom CSS for glassmorphism styling, premium cards, login portal, and beautiful aesthetics
 st.markdown("""
 <style>
-    /* Main body background styling */
-    .reportview-container {
-        background-color: #0e1117;
+    /* Dark Theme Core Styles */
+    .stApp {
+        background: radial-gradient(circle at 10% 20%, #1a1e29 0%, #0e1118 90%);
+        color: #f8fafc;
     }
-    /* Premium card containers */
-    .metric-card {
-        background-color: #1e222b;
-        border-radius: 12px;
-        padding: 20px;
-        border: 1px solid #2d3139;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    
+    /* Premium Glassmorphism Cards */
+    .glass-card {
+        background: rgba(30, 41, 59, 0.45);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        margin-bottom: 20px;
+    }
+    
+    /* Login Portal Custom Styling */
+    .login-container {
+        max-width: 450px;
+        margin: 60px auto;
+        padding: 40px;
+        background: rgba(15, 23, 42, 0.8);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(59, 130, 246, 0.2);
+        border-radius: 24px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 15px rgba(59, 130, 246, 0.2);
         text-align: center;
     }
-    .metric-value {
+    
+    .login-title {
         font-size: 2.2rem;
-        font-weight: 700;
-        margin: 5px 0;
+        font-weight: 800;
+        background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 50%, #1d4ed8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 5px;
     }
-    .metric-label {
-        font-size: 0.9rem;
-        color: #8a99ad;
-        font-weight: 500;
-        text-transform: uppercase;
-    }
-    /* Recommendation badges */
-    .badge {
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-weight: bold;
-        font-size: 0.85rem;
-        text-align: center;
-        display: inline-block;
-    }
-    .badge-buy {
-        background-color: #10b981;
-        color: white;
-    }
-    .badge-watch {
-        background-color: #f59e0b;
+    
+    .premium-badge {
+        background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
         color: #1e1b4b;
+        padding: 4px 12px;
+        font-weight: 800;
+        font-size: 0.75rem;
+        border-radius: 12px;
+        text-transform: uppercase;
+        display: inline-block;
+        margin-bottom: 20px;
+        letter-spacing: 1px;
     }
-    .badge-avoid {
-        background-color: #ef4444;
-        color: white;
+
+    /* Metric Grid Cards */
+    .metric-grid-card {
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 15px;
+        text-align: center;
     }
-    /* Custom divider line */
-    .divider {
-        height: 2px;
-        background: linear-gradient(90deg, #3b82f6 0%, #10b981 100%);
-        margin: 20px 0;
+    .metric-grid-val {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-top: 5px;
+    }
+    .metric-grid-lbl {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    /* Header Gradient Divider */
+    .header-divider {
+        height: 4px;
+        background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 50%, #10b981 100%);
+        margin-bottom: 25px;
+        border-radius: 2px;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize modules
-@st.cache_resource
-def get_loader():
-    return StockDataLoader()
-
-# Database URL support from st.secrets (Streamlit Cloud) or environment variable
+# Initialize storage and loader modules
 db_url = None
 try:
     if "DATABASE_URL" in st.secrets:
         db_url = st.secrets["DATABASE_URL"]
 except Exception:
-    # st.secrets is not set up or configured (common in local environment)
     pass
 
 if not db_url:
     db_url = os.environ.get("DATABASE_URL")
 
 storage = AnalysisStorage(db_url=db_url)
+
+@st.cache_resource
+def get_loader():
+    return StockDataLoader()
+
 loader = get_loader()
 
-# Default stock tickers
-DEFAULT_TICKERS = [
-    "BBCA.JK", "BBRI.JK", "BMRI.JK", "TLKM.JK", "ASII.JK",
-    "UNVR.JK", "ICBP.JK", "GOTO.JK", "ADRO.JK", "MDKA.JK"
-]
+# ----------------- SESSION STATE & AUTHENTICATION MANAGEMENT -----------------
+if "logged_in" not in st.session_state:
+    st.session_state["logged_in"] = False
+if "username" not in st.session_state:
+    st.session_state["username"] = ""
 
-# Title banner
-st.title("📈 Smart Saham - Prototype Rekomendasi Saham Indonesia")
-st.markdown("##### *Decision-Support Tool untuk Analisis Awal Saham IDX (Near-Live Data via yfinance)*")
-st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+# Render login/register page if not logged in
+if not st.session_state["logged_in"]:
+    st.markdown('<div class="login-container">', unsafe_allow_html=True)
+    st.markdown('<div class="login-title">💸 Smart Saham</div>', unsafe_allow_html=True)
+    st.markdown('<div class="premium-badge">✨ PRO SCREENER PORTAL</div>', unsafe_allow_html=True)
+    st.markdown("<p style='color:#94a3b8; font-size:0.95rem; margin-top:-10px;'>Akses premium screening saham harian, visualisasi teknikal & histori log berbasis AI-Scoring</p>", unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-# Sidebar configurations
-with st.sidebar:
-    st.header("⚙️ Pengaturan Analisis")
+    # Use Streamlit form layout for login UI
+    login_tab, register_tab = st.tabs(["🔐 Masuk Ke Akun", "📝 Daftar Akun Baru"])
     
-    # Custom ticker input list
-    selected_tickers = st.multiselect(
-        "Pilih Saham untuk Dianalisis",
-        options=DEFAULT_TICKERS,
-        default=DEFAULT_TICKERS,
-        help="Anda dapat menghapus atau memilih daftar saham Indonesia berformat .JK"
-    )
-    
-    # Additional ticker input
-    custom_ticker = st.text_input("Tambah Ticker Custom (Contoh: BBNI.JK)", "")
-    if custom_ticker:
-        ticker_to_add = custom_ticker.strip().upper()
-        if not ticker_to_add.endswith(".JK"):
-            ticker_to_add += ".JK"
-        if ticker_to_add not in selected_tickers:
-            selected_tickers.append(ticker_to_add)
+    with login_tab:
+        col_c, col_d = st.columns([1, 1])
+        with col_c:
+            st.image("https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3", use_container_width=True, caption="Pantau Momentum & Tren Saham Terbaik")
+        with col_d:
+            st.markdown("### Silakan Login")
+            login_username = st.text_input("Username", key="login_u").strip()
+            login_password = st.text_input("Password", type="password", key="login_p")
+            submit_login = st.button("Masuk Sekarang 🚀", use_container_width=True)
             
-    # Period of analysis
+            if submit_login:
+                if storage.authenticate_user(login_username, login_password):
+                    st.session_state["logged_in"] = True
+                    st.session_state["username"] = login_username.lower()
+                    # Log login activity
+                    storage.log_activity(login_username, "LOGIN")
+                    st.success("Login sukses! Membuka dashboard...")
+                    st.rerun()
+                else:
+                    st.error("Username atau password salah. Coba lagi atau buat akun baru.")
+                    
+    with register_tab:
+        col_e, col_f = st.columns([1, 1])
+        with col_e:
+            st.markdown("### Daftar Akun Premium")
+            reg_username = st.text_input("Username Baru", key="reg_u").strip()
+            reg_email = st.text_input("Email (Opsional)", key="reg_e").strip()
+            reg_password = st.text_input("Password Baru", type="password", key="reg_p")
+            reg_password_confirm = st.text_input("Konfirmasi Password", type="password", key="reg_pc")
+            submit_register = st.button("Buat Akun Premium ✨", use_container_width=True)
+            
+            if submit_register:
+                if not reg_username or not reg_password:
+                    st.error("Username dan password tidak boleh kosong.")
+                elif reg_password != reg_password_confirm:
+                    st.error("Konfirmasi password tidak cocok.")
+                else:
+                    res = storage.create_user(reg_username, reg_password, reg_email)
+                    if res["success"]:
+                        st.success(res["message"])
+                        # Log registration activity
+                        storage.log_activity(reg_username, "REGISTER")
+                    else:
+                        st.error(res["message"])
+        with col_f:
+            st.markdown("""
+            ### Benefit Akun Premium:
+            - 📈 **Screener Saham Tak Terbatas**: Akses seluruh daftar saham di Bursa Efek Indonesia (IDX).
+            - 🎯 **Advanced scoring system**: Kalkulasi momentum, volume trend, RSI, dan MA20/MA50.
+            - 🛠️ **Dashboard detail & risiko**: Penjelasan alasan BUY / WATCH / AVOID beserta faktor risikonya.
+            - 🗃️ **Sinkronisasi Database Awan**: Histori log tersinkronisasi di Neon DB (PostgreSQL).
+            - 🔐 **Log Aktivitas Aman**: Seluruh tindakan terekam aman untuk audit analisis Anda.
+            """)
+    st.stop()
+
+# ----------------- LOGGED IN APPLICATION INTERFACE -----------------
+
+# Header area with Welcome message and Logout
+col_header_title, col_header_user = st.columns([3, 1])
+with col_header_title:
+    st.title("👑 Smart Saham Premium Dashboard")
+    st.markdown("##### *Sistem Screening & Analisis Keputusan Saham Indonesia Premium*")
+with col_header_user:
+    st.write("")
+    st.markdown(f"👤 Akun: **{st.session_state['username'].upper()}** `[Premium Active]`")
+    if st.button("🚪 Keluar Akun (Logout)", use_container_width=True):
+        storage.log_activity(st.session_state["username"], "LOGOUT")
+        st.session_state["logged_in"] = False
+        st.session_state["username"] = ""
+        st.rerun()
+
+st.markdown('<div class="header-divider"></div>', unsafe_allow_html=True)
+
+# Create Sidebar configurations
+with st.sidebar:
+    st.header("⚙️ Konfigurasi Screener")
+    
+    # Selection Mode for all stocks
+    stock_mode = st.radio("Metode Pemilihan Saham:", ["Daftar Terpopuler (LQ45/Sektoral)", "Ketik Ticker Saham Lain"])
+    
+    selected_tickers = []
+    
+    if stock_mode == "Daftar Terpopuler (LQ45/Sektoral)":
+        # Multi-select using the dictionary from stock_list.py
+        selected_popular = st.multiselect(
+            "Pilih Saham (Bisa multi-select)",
+            options=list(IDX_POPULAR_STOCKS.keys()),
+            default=["BBCA.JK", "BBRI.JK", "BMRI.JK", "TLKM.JK", "ASII.JK", "UNVR.JK", "GOTO.JK"],
+            format_func=lambda x: f"{x.split('.')[0]} - {IDX_POPULAR_STOCKS[x]}"
+        )
+        selected_tickers = selected_popular
+    else:
+        st.info("Ketik ticker saham Indonesia di bawah (pisahkan dengan koma jika lebih dari satu).")
+        ticker_input = st.text_input("Contoh: BBNI, ANTM, PTBA", "BBNI, ANTM, PTBA")
+        
+        # Clean input and format with .JK
+        tickers_list = [t.strip().upper() for t in ticker_input.split(",") if t.strip()]
+        formatted_tickers = []
+        for t in tickers_list:
+            if not t.endswith(".JK"):
+                t = f"{t}.JK"
+            formatted_tickers.append(t)
+        selected_tickers = formatted_tickers
+        
+    st.write("")
+    
+    # Custom interactive addition box
+    custom_add = st.text_input("Tambah Ticker Tambahan (Contoh: BRMS)", "")
+    if custom_add:
+        t_add = custom_add.strip().upper()
+        if not t_add.endswith(".JK"):
+            t_add = f"{t_add}.JK"
+        if t_add not in selected_tickers:
+            selected_tickers.append(t_add)
+
+    # Rentang data historis
     history_period = st.selectbox(
-        "Rentang Data Historis",
+        "Rentang Waktu Historis",
         options=["6mo", "1y", "2y"],
         index=1,
-        help="yfinance akan mengambil data sepanjang masa waktu ini untuk menghitung rata-rata bergerak (MA)."
+        help="Menentukan data historis yang ditarik dari yfinance."
     )
     
     st.markdown("---")
-    # Neon DB Connection Info
-    st.subheader("🌐 Cloud Database Sync")
+    st.markdown("🌐 **Database Sync Status**")
     if db_url:
-        st.success("Terkoneksi ke Neon DB Cloud PostgreSQL")
+        st.success("Terkoneksi ke Neon DB Cloud")
     else:
-        st.info("Menggunakan Database Lokal (SQLite/CSV)")
-        st.caption("Untuk sinkronisasi cloud, tambahkan rahasia `DATABASE_URL` di Streamlit secrets atau environment variable.")
+        st.info("Koneksi Database: Lokal (SQLite/CSV)")
 
-    # Refresh button
     run_analysis = st.button("🔄 Jalankan & Simpan Analisis Baru", use_container_width=True)
 
-# Application logic & states
+# ----------------- CONTROLLER / STOCK PROCESSING PIPELINE -----------------
+
 if "results" not in st.session_state or run_analysis:
-    with st.spinner("Mengambil data saham terkini dari yfinance..."):
+    with st.spinner("Menarik data terupdate & memproses indikator teknikal..."):
         all_results = []
         raw_histories = {}
-        quotes = {}
+        
+        # Save to logs database/CSV
+        storage.log_activity(st.session_state["username"], "RUN_SCREENER", f"{len(selected_tickers)} stocks")
         
         for ticker in selected_tickers:
-            # 1. Fetch History
             df_hist = loader.fetch_historical_data(ticker, period=history_period)
             if df_hist is None or df_hist.empty:
-                st.warning(f"Gagal mengambil data historis untuk ticker {ticker}. Mengabaikan ticker.")
+                st.warning(f"Gagal mengambil data historis untuk {ticker}. Mengabaikan ticker.")
                 continue
                 
-            # 2. Calculate Indicators
             indicators = calculate_technical_indicators(df_hist)
             if indicators is None:
-                st.warning(f"Data historis ticker {ticker} terlalu sedikit (kurang dari 60 hari perdagangan).")
+                st.warning(f"Data historis {ticker} tidak cukup untuk analisis (minimum 60 bar).")
                 continue
                 
-            # Store history for visualization
-            raw_histories[ticker] = indicators.pop("history") # Extract history df to avoid cluttering indicators dict
+            raw_histories[ticker] = indicators.pop("history")
             
-            # 3. Fetch Quote for live price
+            # Fetch latest live price details
             quote = loader.fetch_latest_quote(ticker)
-            quotes[ticker] = quote
-            
-            # Use live price if available, otherwise fallback to historical last close
             close_price = quote.get("currentPrice", indicators["close"])
             indicators["close"] = close_price
             
-            # 4. Calculate Score
+            # Scoring
             score_data = calculate_score(indicators)
             
-            # Combine record
+            # Create full record
             record = {
                 "tanggal": date.today(),
                 "ticker": ticker,
-                "name": quote.get("name", ticker.split(".")[0]),
+                "name": quote.get("name", IDX_POPULAR_STOCKS.get(ticker, ticker.split(".")[0])),
                 "close_price": close_price,
                 "open": quote.get("open", indicators["open"]),
                 "high": quote.get("high", indicators["high"]),
@@ -211,7 +334,7 @@ if "results" not in st.session_state or run_analysis:
             st.session_state["results"] = all_results
             st.session_state["histories"] = raw_histories
             
-            # Auto save to Database & CSV
+            # Sync to Database
             db_save_records = []
             for r in all_results:
                 db_save_records.append({
@@ -229,141 +352,113 @@ if "results" not in st.session_state or run_analysis:
                 })
             saved = storage.save_analysis(db_save_records)
             if saved:
-                st.session_state["saved_status"] = "✅ Hasil analisis berhasil disimpan ke Database & CSV!"
+                st.session_state["saved_status"] = "✅ Analisis berhasil disimpan ke Database!"
             else:
-                st.session_state["saved_status"] = "⚠️ Analisis selesai tetapi gagal disimpan ke database."
+                st.session_state["saved_status"] = "⚠️ Analisis selesai tetapi gagal sinkronisasi database."
         else:
-            st.error("Gagal mendapatkan data untuk semua ticker yang dipilih. Silakan periksa jaringan internet atau nama ticker.")
+            st.error("Tidak ada saham yang berhasil dianalisis. Harap pastikan format ticker benar (contoh: BBCA.JK atau BBCA).")
 
-# Display main contents if results are in session state
+# ----------------- VIEW LAYER: RENDER DASHBOARD CONTENTS -----------------
+
 if "results" in st.session_state and st.session_state["results"]:
     results = st.session_state["results"]
     histories = st.session_state["histories"]
     
-    # Save status banner
     if "saved_status" in st.session_state:
         st.caption(st.session_state["saved_status"])
         
-    # Tab navigation
-    tab_dashboard, tab_historical_logs = st.tabs(["📊 Dashboard Utama & Screener", "📜 Riwayat Log Analisis"])
+    tab_screener, tab_history, tab_activities = st.tabs(["📊 Screener & Ranking", "📜 Histori Rekomendasi", "🔐 Audit Aktivitas User (Neon DB)"])
     
-    with tab_dashboard:
-        # Counters and Highlights
-        total_stocks = len(results)
+    with tab_screener:
+        # Highlights Metrics Layout
         buy_count = sum(1 for r in results if r["recommendation"] == "BUY")
         watch_count = sum(1 for r in results if r["recommendation"] == "WATCH")
         avoid_count = sum(1 for r in results if r["recommendation"] == "AVOID")
         
-        # Metric Cards Layout
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            st.markdown(f"""
-            <div class="metric-card" style="border-left: 5px solid #3b82f6;">
-                <div class="metric-label">Total Saham</div>
-                <div class="metric-value" style="color: #3b82f6;">{total_stocks}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        with col2:
-            st.markdown(f"""
-            <div class="metric-card" style="border-left: 5px solid #10b981;">
-                <div class="metric-label">Rekomendasi BUY</div>
-                <div class="metric-value" style="color: #10b981;">{buy_count}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        with col3:
-            st.markdown(f"""
-            <div class="metric-card" style="border-left: 5px solid #f59e0b;">
-                <div class="metric-label">Rekomendasi WATCH</div>
-                <div class="metric-value" style="color: #f59e0b;">{watch_count}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        with col4:
-            st.markdown(f"""
-            <div class="metric-card" style="border-left: 5px solid #ef4444;">
-                <div class="metric-label">Rekomendasi AVOID</div>
-                <div class="metric-value" style="color: #ef4444;">{avoid_count}</div>
-            </div>
-            """, unsafe_allow_html=True)
+        col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+        with col_m1:
+            st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #3b82f6;"><div class="metric-grid-lbl">Saham Di-Screen</div><div class="metric-grid-val" style="color:#3b82f6;">{len(results)}</div></div>', unsafe_allow_html=True)
+        with col_m2:
+            st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #10b981;"><div class="metric-grid-lbl">Rekomendasi BUY</div><div class="metric-grid-val" style="color:#10b981;">{buy_count}</div></div>', unsafe_allow_html=True)
+        with col_m3:
+            st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #f59e0b;"><div class="metric-grid-lbl">Rekomendasi WATCH</div><div class="metric-grid-val" style="color:#f59e0b;">{watch_count}</div></div>', unsafe_allow_html=True)
+        with col_m4:
+            st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #ef4444;"><div class="metric-grid-lbl">Rekomendasi AVOID</div><div class="metric-grid-val" style="color:#ef4444;">{avoid_count}</div></div>', unsafe_allow_html=True)
             
         st.write("")
-        st.subheader("🏆 Tabel Ranking Saham Terkini (Urutan Berdasarkan Skor Tertinggi)")
+        st.subheader("🏆 Leaderboard Hasil Screening Saham (Urutan Skor Tertinggi)")
         
-        # Convert results to DataFrame for rendering
         table_data = []
         for r in results:
             table_data.append({
                 "Ticker": r["ticker"],
                 "Nama Perusahaan": r["name"],
-                "Harga Terakhir": f"Rp {r['close_price']:,.0f}",
-                "RSI (14)": f"{r['rsi']:.1f}" if r['rsi'] is not None else "N/A",
+                "Harga Close": f"Rp {r['close_price']:,.0f}",
+                "RSI 14": f"{r['rsi']:.1f}" if r['rsi'] is not None else "N/A",
                 "MA 20": f"Rp {r['ma20']:,.0f}" if r['ma20'] is not None else "N/A",
                 "MA 50": f"Rp {r['ma50']:,.0f}" if r['ma50'] is not None else "N/A",
                 "Momentum 1M": f"{r['momentum_1m_pct']:+.2f}%",
                 "Momentum 3M": f"{r['momentum_3m_pct']:+.2f}%",
-                "Volume Ratio": f"{r['volume_ratio']:.2f}x",
-                "Skor (0-100)": r["score"],
+                "Vol Ratio": f"{r['volume_ratio']:.2f}x",
+                "Skor": r["score"],
                 "Rekomendasi": r["recommendation"]
             })
+            
+        df_table = pd.DataFrame(table_data).sort_values(by="Skor", ascending=False).reset_index(drop=True)
         
-        df_table = pd.DataFrame(table_data)
-        # Sort by score descending
-        df_table = df_table.sort_values(by="Skor (0-100)", ascending=False).reset_index(drop=True)
-        
-        # Highlight Recommendations with streamlit coloring API
         def style_recommendation(val):
             if val == "BUY":
-                return 'background-color: #10b981; color: white; font-weight: bold;'
+                return 'background-color: rgba(16, 185, 129, 0.25); color: #10b981; font-weight: bold; border: 1px solid #10b981;'
             elif val == "WATCH":
-                return 'background-color: #f59e0b; color: black; font-weight: bold;'
+                return 'background-color: rgba(245, 158, 11, 0.25); color: #f59e0b; font-weight: bold; border: 1px solid #f59e0b;'
             elif val == "AVOID":
-                return 'background-color: #ef4444; color: white; font-weight: bold;'
+                return 'background-color: rgba(239, 68, 68, 0.25); color: #ef4444; font-weight: bold; border: 1px solid #ef4444;'
             return ''
-
-        # Use .map() for Pandas 2.1.0+ and fallback to .applymap() for older versions
+            
         styler = df_table.style
         if hasattr(styler, "map"):
             styled_df = styler.map(style_recommendation, subset=["Rekomendasi"])
         else:
             styled_df = styler.applymap(style_recommendation, subset=["Rekomendasi"])
-
-        st.dataframe(
-            styled_df,
-            use_container_width=True,
-            hide_index=True
-        )
-
+            
+        st.dataframe(styled_df, use_container_width=True, hide_index=True)
         
-        st.markdown("---")
+        st.markdown('<div class="header-divider"></div>', unsafe_allow_html=True)
         
-        # Section detail per saham
-        st.subheader("🔍 Analisis Detail & Grafik per Saham")
+        # ----------------- SECTION: WOW KICK DETAILED ANALYSIS -----------------
+        st.markdown("### 🔍 Analisis Komprehensif & Visualisasi Interaktif")
+        
         selected_stock = st.selectbox(
-            "Pilih Saham untuk Melihat Grafik & Detail Alasan:",
-            options=[r["ticker"] for r in results]
+            "Pilih Saham untuk Analisis Detil:",
+            options=[r["ticker"] for r in results],
+            format_func=lambda x: f"{x} - {IDX_POPULAR_STOCKS.get(x, 'Custom Ticker')}"
         )
         
-        # Find stock result details
+        # User activity logging for stock view (triggered only once per unique stock click)
+        if "last_viewed" not in st.session_state or st.session_state["last_viewed"] != selected_stock:
+            st.session_state["last_viewed"] = selected_stock
+            storage.log_activity(st.session_state["username"], "VIEW_STOCK_DETAILS", selected_stock)
+            
         stock_details = next(r for r in results if r["ticker"] == selected_stock)
         stock_hist = histories[selected_stock]
         
-        col_detail_left, col_detail_right = st.columns([2, 1])
+        col_det_left, col_det_right = st.columns([5, 3])
         
-        with col_detail_left:
-            st.markdown(f"#### Grafik Harga Historis: **{selected_stock}**")
+        with col_det_left:
+            st.markdown(f"##### Grafik Tren Candlestick & Moving Average: **{selected_stock}**")
             
-            # Filter chart view options
-            chart_period = st.radio("Jangka Waktu Tampilan Grafik:", ["3 Bulan", "6 Bulan", "Semua Data"], horizontal=True, key="chart_p")
-            if chart_period == "3 Bulan":
+            # Chart period selector
+            chart_range = st.radio("Rentang Tampilan:", ["3 Bulan", "6 Bulan", "1 Tahun"], horizontal=True, key="c_range")
+            if chart_range == "3 Bulan":
                 df_chart = stock_hist.tail(60).copy()
-            elif chart_period == "6 Bulan":
+            elif chart_range == "6 Bulan":
                 df_chart = stock_hist.tail(120).copy()
             else:
                 df_chart = stock_hist.copy()
-            
-            # Interactive Candlestick / Line Chart using Plotly
+                
             fig = go.Figure()
             
-            # Price Candlestick
+            # Candlestick
             fig.add_trace(go.Candlestick(
                 x=df_chart['Date'],
                 open=df_chart['Open'],
@@ -379,129 +474,185 @@ if "results" in st.session_state and st.session_state["results"]:
             if 'MA20' in df_chart.columns:
                 fig.add_trace(go.Scatter(
                     x=df_chart['Date'], y=df_chart['MA20'],
-                    line=dict(color='#3b82f6', width=1.5),
-                    name='MA 20 (Tren Jk. Pendek)'
+                    line=dict(color='#3b82f6', width=2),
+                    name='MA 20 (Tren Pendek)'
                 ))
-                
             # MA 50
             if 'MA50' in df_chart.columns:
                 fig.add_trace(go.Scatter(
                     x=df_chart['Date'], y=df_chart['MA50'],
-                    line=dict(color='#f59e0b', width=1.5),
-                    name='MA 50 (Tren Jk. Menengah)'
+                    line=dict(color='#f59e0b', width=2),
+                    name='MA 50 (Tren Menengah)'
                 ))
                 
             fig.update_layout(
                 template="plotly_dark",
                 xaxis_rangeslider_visible=False,
                 margin=dict(l=20, r=20, t=10, b=10),
-                height=400,
+                height=350,
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
             )
             st.plotly_chart(fig, use_container_width=True)
             
             # RSI Chart
-            st.markdown(f"#### Grafik Relative Strength Index (RSI 14): **{selected_stock}**")
+            st.markdown(f"##### Indikator Kekuatan Harga (RSI 14): **{selected_stock}**")
             fig_rsi = go.Figure()
             fig_rsi.add_trace(go.Scatter(
                 x=df_chart['Date'], y=df_chart['RSI'],
-                line=dict(color='#8b5cf6', width=2),
-                name='RSI'
+                line=dict(color='#a78bfa', width=2),
+                fill='tozeroy',
+                fillcolor='rgba(167, 139, 250, 0.05)',
+                name='RSI 14'
             ))
-            # Boundaries
             fig_rsi.add_hline(y=70, line_dash="dash", line_color="#ef4444", annotation_text="Overbought (70)")
             fig_rsi.add_hline(y=30, line_dash="dash", line_color="#10b981", annotation_text="Oversold (30)")
-            fig_rsi.add_hline(y=40, line_dash="dot", line_color="#8a99ad", annotation_text="Batas Bawah Netral (40)")
+            fig_rsi.add_hline(y=40, line_dash="dot", line_color="#94a3b8", annotation_text="Neutral Low (40)")
             
             fig_rsi.update_layout(
                 template="plotly_dark",
                 yaxis=dict(range=[10, 90]),
                 margin=dict(l=20, r=20, t=10, b=10),
-                height=200,
+                height=180,
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
             )
             st.plotly_chart(fig_rsi, use_container_width=True)
             
-        with col_detail_right:
-            # Score Gauge
-            st.markdown("#### Detail Hasil Analisis")
+        with col_det_right:
+            # WOW KICK GAUGE CHART
+            st.markdown("<div class='glass-card' style='text-align:center;'>", unsafe_allow_html=True)
             
+            score = stock_details["score"]
             rec = stock_details["recommendation"]
-            rec_color = "#10b981" if rec == "BUY" else ("#f59e0b" if rec == "WATCH" else "#ef4444")
             
+            # Gauge Plotly Chart
+            fig_gauge = go.Figure(go.Indicator(
+                mode="gauge+number",
+                value=score,
+                domain={'x': [0, 1], 'y': [0, 1]},
+                gauge={
+                    'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "#ffffff"},
+                    'bar': {'color': "#ffffff", 'thickness': 0.25},
+                    'bgcolor': "rgba(0,0,0,0)",
+                    'borderwidth': 2,
+                    'bordercolor': "rgba(255,255,255,0.1)",
+                    'steps': [
+                        {'range': [0, 50], 'color': '#ef4444'},
+                        {'range': [50, 75], 'color': '#f59e0b'},
+                        {'range': [75, 100], 'color': '#10b981'}
+                    ],
+                    'threshold': {
+                        'line': {'color': "#ffffff", 'width': 4},
+                        'thickness': 0.75,
+                        'value': score
+                    }
+                }
+            ))
+            fig_gauge.update_layout(
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font={'color': "#ffffff", 'family': "Arial"},
+                height=220,
+                margin=dict(l=30, r=30, t=30, b=10)
+            )
+            st.plotly_chart(fig_gauge, use_container_width=True)
+            
+            rec_badge_style = "badge-buy" if rec == "BUY" else ("badge-watch" if rec == "WATCH" else "badge-avoid")
             st.markdown(f"""
-            <div style="background-color: #1e222b; border-radius: 12px; padding: 25px; border: 1px solid #2d3139; text-align: center;">
-                <h5 style="color: #8a99ad; margin: 0;">SKOR REKOMENDASI</h5>
-                <h1 style="color: {rec_color}; font-size: 4rem; margin: 5px 0;">{stock_details['score']}</h1>
-                <div class="badge badge-{'buy' if rec == 'BUY' else ('watch' if rec == 'WATCH' else 'avoid')}" style="font-size: 1.2rem; padding: 8px 20px;">
+            <div style="margin-top:-20px; margin-bottom:15px;">
+                <span class="badge {rec_badge_style}" style="font-size:1.4rem; padding:8px 25px; border-radius:30px;">
                     {rec}
-                </div>
+                </span>
             </div>
             """, unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
             
-            st.write("")
-            
-            # Display positive points
-            st.markdown("##### 🟢 Poin Penilaian Positif:")
-            if stock_details["reasons"]:
-                for r in stock_details["reasons"]:
-                    st.markdown(f"- {r}")
-            else:
-                st.caption("Tidak ada indikator teknikal positif signifikan terdeteksi.")
+            # Technical Metrics Summary Grid
+            st.markdown("##### 📝 Metrik Teknikal Utama")
+            col_g1, col_g2 = st.columns(2)
+            with col_g1:
+                st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Harga Terakhir</div><div class="metric-grid-val">Rp {stock_details["close_price"]:,.0f}</div></div>', unsafe_allow_html=True)
+                st.write("")
+                st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">RSI (14)</div><div class="metric-grid-val">{stock_details["rsi"]:.1f}</div></div>', unsafe_allow_html=True)
+                st.write("")
+                st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Rasio Volume</div><div class="metric-grid-val">{stock_details["volume_ratio"]:.2f}x</div></div>', unsafe_allow_html=True)
+            with col_g2:
+                st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Momentum 1M</div><div class="metric-grid-val" style="color:{"#10b981" if stock_details["momentum_1m"] > 0 else "#ef4444"}">{stock_details["momentum_1m_pct"]:+.2f}%</div></div>', unsafe_allow_html=True)
+                st.write("")
+                st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Momentum 3M</div><div class="metric-grid-val" style="color:{"#10b981" if stock_details["momentum_3m"] > 0 else "#ef4444"}">{stock_details["momentum_3m_pct"]:+.2f}%</div></div>', unsafe_allow_html=True)
+                st.write("")
+                st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">MA20 vs MA50</div><div class="metric-grid-val" style="font-size:1.1rem; padding-top:4px;">{"MA20 > MA50" if (stock_details["ma20"] or 0) > (stock_details["ma50"] or 0) else "MA20 < MA50"}</div></div>', unsafe_allow_html=True)
                 
             st.write("")
             
-            # Display risks
-            st.markdown("##### ⚠️ Faktor Risiko Teknis & Catatan:")
-            for risk in stock_details["risks"]:
-                st.markdown(f"- <span style='color:#f87171'>{risk}</span>", unsafe_allow_html=True)
-                
-            # Basic stats summary card
-            st.markdown("---")
-            st.markdown("##### 📊 Statistik Harga Ringkas:")
-            st.write(f"**Open Price:** Rp {stock_details['open']:,.0f}")
-            st.write(f"**High Price:** Rp {stock_details['high']:,.0f}")
-            st.write(f"**Low Price:** Rp {stock_details['low']:,.0f}")
-            st.write(f"**Volume Harian:** {stock_details['volume']:,} lembar")
-            
-    with tab_historical_logs:
+            # Bullet point reasons & risks
+            with st.expander("🟢 Detail Poin Penilaian Positif", expanded=True):
+                if stock_details["reasons"]:
+                    for reason in stock_details["reasons"]:
+                        st.markdown(f"**✓** {reason}")
+                else:
+                    st.caption("Tidak ada indikator teknikal positif terdeteksi saat ini.")
+                    
+            with st.expander("⚠️ Detail Faktor Risiko Teknis", expanded=True):
+                if stock_details["risks"]:
+                    for risk in stock_details["risks"]:
+                        st.markdown(f"**•** <span style='color:#f87171'>{risk}</span>", unsafe_allow_html=True)
+                else:
+                    st.caption("Tidak ada faktor risiko teknis signifikan yang terdeteksi.")
+                    
+    with tab_history:
         st.subheader("📜 Log Riwayat Analisis Harian")
-        st.write("Bagian ini menampilkan hasil analisis harian yang disimpan secara permanen di database (Neon DB/SQLite) maupun CSV lokal.")
+        st.write("Histori data screening harian yang tercatat di database online Neon DB / database SQLite lokal.")
         
         try:
-            df_logs = storage.load_historical_logs(limit=200)
+            df_logs = storage.load_historical_logs(limit=250)
             if not df_logs.empty:
-                # Format dates and numbers nicely
                 df_logs['tanggal'] = pd.to_datetime(df_logs['tanggal']).dt.date
                 df_logs = df_logs.rename(columns={
-                    'tanggal': 'Tanggal',
-                    'ticker': 'Ticker',
-                    'close_price': 'Harga Close',
-                    'rsi': 'RSI',
-                    'ma20': 'MA 20',
-                    'ma50': 'MA 50',
-                    'momentum_1m': 'Momentum 1M',
-                    'momentum_3m': 'Momentum 3M',
-                    'volume_ratio': 'Vol Ratio',
-                    'score': 'Skor',
+                    'tanggal': 'Tanggal', 'ticker': 'Ticker', 'close_price': 'Harga Close',
+                    'rsi': 'RSI', 'ma20': 'MA 20', 'ma50': 'MA 50', 'momentum_1m': 'Momentum 1M',
+                    'momentum_3m': 'Momentum 3M', 'volume_ratio': 'Vol Ratio', 'score': 'Skor',
                     'recommendation': 'Rekomendasi'
                 })
                 st.dataframe(df_logs, use_container_width=True, hide_index=True)
             else:
-                st.info("Log database masih kosong. Silakan jalankan analisis saham baru di bilah samping kiri untuk menyimpannya.")
+                st.info("Log database masih kosong. Jalankan screening baru di sidebar untuk mengisi database.")
         except Exception as e:
-            st.error(f"Gagal mengambil log dari database: {str(e)}")
+            st.error(f"Gagal memuat log data dari database: {str(e)}")
+            
+    with tab_activities:
+        st.subheader("🔐 Audit Jejak Aktivitas Pengguna (Neon DB Sync)")
+        st.write("Semua aktivitas pengguna seperti masuk akun, melihat grafik saham spesifik, dan melakukan screening tersimpan di Neon DB untuk monitoring.")
+        
+        try:
+            df_act = storage.load_activity_logs(limit=150)
+            if not df_act.empty:
+                df_act['timestamp'] = pd.to_datetime(df_act['timestamp']).dt.strftime('%Y-%m-%d %H:%M:%S')
+                df_act = df_act.rename(columns={
+                    'username': 'Username',
+                    'action': 'Aktivitas / Tindakan',
+                    'ticker': 'Ticker Terkait',
+                    'timestamp': 'Waktu (UTC)'
+                })
+                st.dataframe(df_act, use_container_width=True, hide_index=True)
+            else:
+                st.info("Log aktivitas masih kosong.")
+        except Exception as e:
+            st.error(f"Gagal mengambil log aktivitas pengguna: {str(e)}")
 
-# Disclaimer
-st.markdown('<div class="divider"></div>', unsafe_allow_html=True)
+# Bottom Disclaimer Page Footer
+st.markdown('<div class="header-divider" style="margin-top:40px;"></div>', unsafe_allow_html=True)
 st.markdown("""
-<div style="background-color: #27272a; border-radius: 8px; padding: 15px; border-left: 6px solid #f59e0b; margin-top: 20px;">
-    <h5 style="color: #f59e0b; margin: 0 0 5px 0;">⚠️ PENGUMUMAN PENTING & DISCLAIMER</h5>
-    <p style="color: #d4d4d8; font-size: 0.85rem; margin: 0;">
-        Hasil analisis dan rekomendasi (BUY / WATCH / AVOID) yang disajikan oleh dashboard Smart Saham ini murni berasal dari kalkulasi formula scoring indikator teknikal sederhana. 
-        <b>Hasil ini hanya untuk analisis awal, bukan ajakan membeli/menjual saham.</b> Dashboard ini dirancang sebagai decision-support tool untuk menyaring saham (initial screening) 
-        dan bukan merupakan financial advice final. Segala tindakan transaksi saham sepenuhnya menjadi tanggung jawab pengguna. Pengguna disarankan untuk melakukan analisis fundamental lebih lanjut, 
-        serta memantau kondisi berita ekonomi sebelum mengambil keputusan investasi.
+<div style="background-color: rgba(39, 39, 42, 0.4); border-radius: 12px; padding: 20px; border-left: 6px solid #f59e0b; margin-top: 10px;">
+    <h5 style="color: #f59e0b; margin: 0 0 5px 0; font-weight:700;">⚠️ DISCLAIMER & BATASAN PENGGUNAAN</h5>
+    <p style="color: #cbd5e1; font-size: 0.85rem; margin: 0; line-height:1.4;">
+        Aplikasi Smart Saham Premium ini dirancang murni sebagai alat bantu pengambilan keputusan awal (decision-support tool) untuk mempermudah screening teknikal. 
+        <b>Hasil analisis, nilai skor, dan rekomendasi (BUY / WATCH / AVOID) bukanlah saran keuangan final atau ajakan mutlak untuk membeli/menjual saham.</b> 
+        Setiap keputusan transaksi saham sepenuhnya menjadi tanggung jawab mandiri pengguna. Anda sangat disarankan untuk menyelaraskan hasil screening ini dengan 
+        analisis fundamental perusahaan serta memantau berita pasar modal secara menyeluruh.
     </p>
 </div>
 """, unsafe_allow_html=True)
