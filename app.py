@@ -319,11 +319,19 @@ if "results" in st.session_state and st.session_state["results"]:
                 return 'background-color: #ef4444; color: white; font-weight: bold;'
             return ''
 
+        # Use .map() for Pandas 2.1.0+ and fallback to .applymap() for older versions
+        styler = df_table.style
+        if hasattr(styler, "map"):
+            styled_df = styler.map(style_recommendation, subset=["Rekomendasi"])
+        else:
+            styled_df = styler.applymap(style_recommendation, subset=["Rekomendasi"])
+
         st.dataframe(
-            df_table.style.applymap(style_recommendation, subset=["Rekomendasi"]),
+            styled_df,
             use_container_width=True,
             hide_index=True
         )
+
         
         st.markdown("---")
         
