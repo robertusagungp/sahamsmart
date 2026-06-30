@@ -10,7 +10,7 @@ from src.data_loader import StockDataLoader
 from src.indicators import calculate_technical_indicators
 from src.scoring import calculate_score
 from src.storage import AnalysisStorage
-from src.stock_list import IDX_POPULAR_STOCKS
+from src.stock_list import get_all_idx_tickers
 
 # Set page configuration with a modern title and wide layout
 st.set_page_config(
@@ -125,6 +125,13 @@ def get_loader():
 
 loader = get_loader()
 
+# Load all IDX stock tickers at startup
+@st.cache_data(ttl=86400) # Cache listings for 24 hours
+def load_stock_database():
+    return get_all_idx_tickers()
+
+IDX_STOCKS = load_stock_database()
+
 # ----------------- SESSION STATE & AUTHENTICATION MANAGEMENT -----------------
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
@@ -220,17 +227,17 @@ with st.sidebar:
     st.header("⚙️ Konfigurasi Screener")
     
     # Selection Mode for all stocks
-    stock_mode = st.radio("Metode Pemilihan Saham:", ["Daftar Terpopuler (LQ45/Sektoral)", "Ketik Ticker Saham Lain"])
+    stock_mode = st.radio("Metode Pemilihan Saham:", ["Pilih dari Semua Saham IDX (820+ Emiten)", "Ketik Ticker Manual"])
     
     selected_tickers = []
     
-    if stock_mode == "Daftar Terpopuler (LQ45/Sektoral)":
-        # Multi-select using the dictionary from stock_list.py
+    if stock_mode == "Pilih dari Semua Saham IDX (820+ Emiten)":
+        # Multi-select using the dynamic IDX stock list
         selected_popular = st.multiselect(
             "Pilih Saham (Bisa multi-select)",
-            options=list(IDX_POPULAR_STOCKS.keys()),
+            options=list(IDX_STOCKS.keys()),
             default=["BBCA.JK", "BBRI.JK", "BMRI.JK", "TLKM.JK", "ASII.JK", "UNVR.JK", "GOTO.JK"],
-            format_func=lambda x: f"{x.split('.')[0]} - {IDX_POPULAR_STOCKS[x]}"
+            format_func=lambda x: f"{x.split('.')[0]} - {IDX_STOCKS.get(x, x)}"
         )
         selected_tickers = selected_popular
     else:
@@ -309,7 +316,7 @@ if "results" not in st.session_state or run_analysis:
             record = {
                 "tanggal": date.today(),
                 "ticker": ticker,
-                "name": quote.get("name", IDX_POPULAR_STOCKS.get(ticker, ticker.split(".")[0])),
+                "name": quote.get("name", IDX_STOCKS.get(ticker, ticker.split(".")[0])),
                 "close_price": close_price,
                 "open": quote.get("open", indicators["open"]),
                 "high": quote.get("high", indicators["high"]),
@@ -431,7 +438,7 @@ if "results" in st.session_state and st.session_state["results"]:
         selected_stock = st.selectbox(
             "Pilih Saham untuk Analisis Detil:",
             options=[r["ticker"] for r in results],
-            format_func=lambda x: f"{x} - {IDX_POPULAR_STOCKS.get(x, 'Custom Ticker')}"
+            format_func=lambda x: f"{x} - {IDX_STOCKS.get(x, 'Custom Ticker')}"
         )
         
         # User activity logging for stock view (triggered only once per unique stock click)
