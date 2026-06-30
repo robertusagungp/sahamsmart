@@ -121,7 +121,7 @@ class AnalysisStorage:
             try:
                 from sqlalchemy import text
                 # Check if username exists
-                with self.engine.connect() as conn:
+                with self.engine.begin() as conn:
                     result = conn.execute(
                         text("SELECT id FROM users WHERE LOWER(username) = :u"),
                         {"u": username}
@@ -134,7 +134,6 @@ class AnalysisStorage:
                         text("INSERT INTO users (username, password_hash, email, created_at) VALUES (:u, :p, :e, :c)"),
                         {"u": username, "p": password_hash, "e": email, "c": created_at}
                     )
-                    conn.commit()
                 return {"success": True, "message": "Registrasi berhasil! Silakan login."}
             except Exception as e:
                 print(f"Error creating user in DB: {str(e)}")
@@ -214,12 +213,11 @@ class AnalysisStorage:
         if self.engine:
             try:
                 from sqlalchemy import text
-                with self.engine.connect() as conn:
+                with self.engine.begin() as conn:
                     conn.execute(
                         text("INSERT INTO user_activity_logs (username, action, ticker, timestamp) VALUES (:u, :a, :t, :time)"),
                         {"u": username, "a": action, "t": ticker, "time": now}
                     )
-                    conn.commit()
                 success_db = True
             except Exception as e:
                 print(f"Error logging activity to DB: {str(e)}")
