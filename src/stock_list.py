@@ -81,37 +81,36 @@ IDX_FALLBACK_STOCKS = {
 
 CACHE_FILE_PATH = "data/all_idx_stocks.csv"
 
-def get_all_idx_tickers() -> Dict[str, str]:
+def get_idx_stocks_df() -> pd.DataFrame:
     """
-    Returns a dictionary of all IDX stock tickers and their company names.
-    Tries to load from a local cache file first. If it doesn't exist, it pulls
-    listings from GitHub, caches it, and falls back to a static list if offline.
+    Returns a pandas DataFrame of all IDX stocks with columns: ticker, name, sector.
+    Uses local cache if available, otherwise downloads from GitHub.
     """
     # 1. Read from local cache file if exists
     if os.path.exists(CACHE_FILE_PATH):
         try:
             df = pd.read_csv(CACHE_FILE_PATH)
-            # Convert back to dictionary
-            return dict(zip(df['ticker'], df['name']))
+            if 'sector' in df.columns:
+                return df
         except Exception as e:
             print(f"Error reading stock list cache: {e}")
 
     # 2. Try fetching from wildangunawan/Dataset-Saham-IDX on GitHub
-    SECTORS = [
-        "Energy.csv",
-        "Basic Materials.csv",
-        "Industrials.csv",
-        "Consumer Non-Cyclicals.csv",
-        "Consumer Cyclicals.csv",
-        "Healthcare.csv",
-        "Financials.csv",
-        "Properties & Real Estate.csv",
-        "Technology.csv",
-        "Infrastructures.csv",
-        "Transportation & Logistic.csv"
-    ]
+    SECTORS = {
+        "Energy": "Energy.csv",
+        "Basic Materials": "Basic Materials.csv",
+        "Industrials": "Industrials.csv",
+        "Consumer Non-Cyclical": "Consumer Non-Cyclicals.csv",
+        "Consumer Cyclical": "Consumer Cyclicals.csv",
+        "Healthcare": "Healthcare.csv",
+        "Financials": "Financials.csv",
+        "Properties & Real Estate": "Properties & Real Estate.csv",
+        "Technology": "Technology.csv",
+        "Infrastructure": "Infrastructures.csv",
+        "Transportation & Logistics": "Transportation & Logistic.csv"
+    }
     
-    all_stocks = {}
+    rows = []
     
     # Disable SSL warnings
     import urllib3
@@ -125,25 +124,54 @@ def get_all_idx_tickers() -> Dict[str, str]:
         })
         
         print("Downloading all stock tickers from GitHub...")
-        for sector in SECTORS:
-            url = f"https://raw.githubusercontent.com/wildangunawan/Dataset-Saham-IDX/master/List%20Emiten/Sectors/{sector.replace(' ', '%20').replace('&', '%26')}"
+        for sector_name, filename in SECTORS.items():
+            url = f"https://raw.githubusercontent.com/wildangunawan/Dataset-Saham-IDX/master/List%20Emiten/Sectors/{filename.replace(' ', '%20').replace('&', '%26')}"
             response = session.get(url, timeout=10)
             if response.status_code == 200:
                 df_sector = pd.read_csv(io.StringIO(response.text))
                 for _, row in df_sector.iterrows():
-                    code = f"{row['code']}.JK"
-                    all_stocks[code] = row['name']
+                    rows.append({
+                        "ticker": f"{row['code']}.JK",
+                        "name": row['name'],
+                        "sector": sector_name
+                    })
                     
-        if all_stocks:
+        if rows:
+            df_cache = pd.DataFrame(rows)
             # Save to cache file
             os.makedirs(os.path.dirname(CACHE_FILE_PATH) or '.', exist_ok=True)
-            df_cache = pd.DataFrame(list(all_stocks.items()), columns=['ticker', 'name'])
             df_cache.to_csv(CACHE_FILE_PATH, index=False)
-            print(f"Successfully cached {len(all_stocks)} stocks locally.")
-            return all_stocks
+            print(f"Successfully cached {len(df_cache)} stocks locally.")
+            return df_cache
             
     except Exception as e:
-        print(f"Failed to fetch stock list dynamically: {e}. Falling back to pre-compiled list.")
+        print(f"Failed to fetch stock list dynamically: {e}")
         
-    # 3. Fallback to pre-compiled popular stocks list if offline
-    return IDX_FALLBACK_STOCKS
+    # 3. Fallback to precompiled list if offline
+    fallback_rows = []
+    for ticker, name in IDX_FALLBACK_STOCKS.items():
+        # Guestimate sector
+        if ticker in ["BBCA.JK", "BBRI.JK", "BMRI.JK", "BBNI.JK", "BBTN.JK", "ARTO.JK", "PNLF.JK"]:
+            sector = "Financials"
+        elif ticker in ["TLKM.JK", "EXCL.JK", "ISAT.JK", "TOWR.JK", "TBIG.JK"]:
+            sector = "Infrastructure"
+        elif ticker in ["ADRO.JK", "PTBA.JK", "ITMG.JK", "HRUM.JK", "MEDC.JK", "BUMI.JK", "ADMR.JK"]:
+            sector = "Energy"
+        elif ticker in ["MDKA.JK", "ANTM.JK", "INCO.JK", "BRMS.JK", "NCKL.JK", "MBMA.JK"]:
+            sector = "Basic Materials"
+        else:
+            sector = "Other / Diversified"
+            
+        fallback_rows.append({
+            "ticker": ticker,
+            "name": name,
+            "sector": sector
+        })
+    return pd.DataFrame(fallback_rows)
+
+def get_all_idx_tickers() -> Dict[str, str]:
+    """
+    Backwards compatibility: Returns a dictionary of all IDX stock tickers and their company names.
+    """
+    df = get_idx_stocks_df()
+    return dict(zip(df['ticker'], df['name']))

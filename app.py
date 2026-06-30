@@ -10,7 +10,7 @@ from src.data_loader import StockDataLoader
 from src.indicators import calculate_technical_indicators
 from src.scoring import calculate_score
 from src.storage import AnalysisStorage
-from src.stock_list import get_all_idx_tickers
+from src.stock_list import get_all_idx_tickers, get_idx_stocks_df
 
 # Set page configuration with a modern title and wide layout
 st.set_page_config(
@@ -130,6 +130,10 @@ loader = get_loader()
 def load_stock_database():
     return get_all_idx_tickers()
 
+@st.cache_data(ttl=86400) # Cache listings dataframe for 24 hours
+def load_stock_database_df():
+    return get_idx_stocks_df()
+
 IDX_STOCKS = load_stock_database()
 
 # ----------------- SESSION STATE & AUTHENTICATION MANAGEMENT -----------------
@@ -226,25 +230,40 @@ st.markdown('<div class="header-divider"></div>', unsafe_allow_html=True)
 with st.sidebar:
     st.header("⚙️ Konfigurasi Screener")
     
-    # Selection Mode for all stocks
-    stock_mode = st.radio("Metode Pemilihan Saham:", ["Pilih dari Semua Saham IDX (820+ Emiten)", "Ketik Ticker Manual"])
+    # Sector and Custom presets in the sidebar
+    selected_preset = st.selectbox(
+        "🎯 Preset Kategori Saham:",
+        options=[
+            "Kustom (Pilih Manual)", 
+            "Ketik Ticker Manual",
+            "Semua Saham IDX (820+ Emiten)", 
+            "Sektor Finansial (Financials)",
+            "Sektor Energi (Energy)",
+            "Sektor Teknologi (Technology)",
+            "Sektor Infrastruktur (Infrastructure)",
+            "Sektor Basic Materials",
+            "Sektor Consumer Non-Cyclical",
+            "Sektor Consumer Cyclical",
+            "Sektor Healthcare",
+            "Sektor Industrials",
+            "Sektor Properties & Real Estate",
+            "Sektor Transportation & Logistics"
+        ]
+    )
     
     selected_tickers = []
     
-    if stock_mode == "Pilih dari Semua Saham IDX (820+ Emiten)":
+    if selected_preset == "Kustom (Pilih Manual)":
         # Multi-select using the dynamic IDX stock list
-        selected_popular = st.multiselect(
+        selected_tickers = st.multiselect(
             "Pilih Saham (Bisa multi-select)",
             options=list(IDX_STOCKS.keys()),
             default=["BBCA.JK", "BBRI.JK", "BMRI.JK", "TLKM.JK", "ASII.JK", "UNVR.JK", "GOTO.JK"],
             format_func=lambda x: f"{x.split('.')[0]} - {IDX_STOCKS.get(x, x)}"
         )
-        selected_tickers = selected_popular
-    else:
+    elif selected_preset == "Ketik Ticker Manual":
         st.info("Ketik ticker saham Indonesia di bawah (pisahkan dengan koma jika lebih dari satu).")
         ticker_input = st.text_input("Contoh: BBNI, ANTM, PTBA", "BBNI, ANTM, PTBA")
-        
-        # Clean input and format with .JK
         tickers_list = [t.strip().upper() for t in ticker_input.split(",") if t.strip()]
         formatted_tickers = []
         for t in tickers_list:
@@ -252,6 +271,19 @@ with st.sidebar:
                 t = f"{t}.JK"
             formatted_tickers.append(t)
         selected_tickers = formatted_tickers
+    elif selected_preset == "Semua Saham IDX (820+ Emiten)":
+        selected_tickers = list(IDX_STOCKS.keys())
+        st.warning("⚠️ Menganalisis 820+ saham sekaligus memerlukan waktu sekitar 1-2 menit. Klik tombol Refresh di bawah.")
+    else:
+        # Extract sector name from preset
+        sector_name = selected_preset.replace("Sektor ", "")
+        if " (" in sector_name:
+            sector_name = sector_name.split(" (")[0]
+        
+        df_stocks_db = load_stock_database_df()
+        df_sector = df_stocks_db[df_stocks_db['sector'] == sector_name]
+        selected_tickers = df_sector['ticker'].tolist()
+        st.info(f"Terpilih {len(selected_tickers)} saham di {selected_preset}.")
         
     st.write("")
     
