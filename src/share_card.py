@@ -1,7 +1,57 @@
 import os
 import io
+import urllib.request
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
+
+def get_custom_font(size, bold=False):
+    """
+    Bulletproof self-healing font loader.
+    If local TrueType fonts are not found, downloads Roboto from Google Fonts CDN to ensure
+    high-quality, large typography rendering on any system (Windows, Linux, Streamlit Cloud).
+    """
+    font_dir = "data/fonts"
+    os.makedirs(font_dir, exist_ok=True)
+    
+    font_name = "Roboto-Bold.ttf" if bold else "Roboto-Regular.ttf"
+    font_path = os.path.join(font_dir, font_name)
+    
+    # 1. Try to download if not exists
+    if not os.path.exists(font_path):
+        try:
+            url = f"https://raw.githubusercontent.com/googlefonts/roboto/main/src/hinted/{font_name}"
+            # Use Request with User-Agent to bypass GitHub's default script blocking
+            req = urllib.request.Request(
+                url, 
+                headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+            )
+            with urllib.request.urlopen(req, timeout=10) as response, open(font_path, 'wb') as out_file:
+                out_file.write(response.read())
+        except Exception as e:
+            print(f"Warning: Failed to download custom font: {str(e)}")
+            
+    # 2. Try to load downloaded font
+    if os.path.exists(font_path):
+        try:
+            return ImageFont.truetype(font_path, size)
+        except Exception as e:
+            print(f"Warning: Failed to load downloaded font: {str(e)}")
+            
+    # 3. Fallback to OS paths
+    font_paths = [
+        "C:\\Windows\\Fonts\\segoeuib.ttf" if bold else "C:\\Windows\\Fonts\\segoeui.ttf",
+        "C:\\Windows\\Fonts\\arial.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+    ]
+    for path in font_paths:
+        if os.path.exists(path):
+            try:
+                return ImageFont.truetype(path, size)
+            except:
+                pass
+                
+    # 4. Final fallback (Will ignore size, but won't crash)
+    return ImageFont.load_default()
 
 def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ratio: str = "1080x1080") -> io.BytesIO:
     """
@@ -91,32 +141,13 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
         box_border = "#2e303f"
 
     # Font Setup (Large Scale for high visibility)
-    font_paths = [
-        "C:\\Windows\\Fonts\\segoeuib.ttf",
-        "C:\\Windows\\Fonts\\segoeui.ttf",
-        "C:\\Windows\\Fonts\\arial.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-    ]
-    
-    def get_font(size, bold=False):
-        for path in font_paths:
-            if os.path.exists(path):
-                try:
-                    if bold and "segoeuib" in path.lower():
-                        return ImageFont.truetype(path, size)
-                    return ImageFont.truetype(path, size)
-                except:
-                    pass
-        return ImageFont.load_default()
-
-    font_title = get_font(34, bold=True)
-    font_ticker = get_font(110, bold=True)
-    font_roi = get_font(84, bold=True)
-    font_label = get_font(18, bold=False)
-    font_value = get_font(26, bold=True)
-    font_value_sm = get_font(22, bold=True)
-    font_footer = get_font(18, bold=False)
+    font_title = get_custom_font(34, bold=True)
+    font_ticker = get_custom_font(110, bold=True)
+    font_roi = get_custom_font(84, bold=True)
+    font_label = get_custom_font(18, bold=False)
+    font_value = get_custom_font(26, bold=True)
+    font_value_sm = get_custom_font(22, bold=True)
+    font_footer = get_custom_font(18, bold=False)
     
     # 3. Canvas Painting
     img = Image.new("RGBA", (width, height), bg_canvas)
@@ -147,16 +178,16 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
         
         # Outcome status label
         draw.rounded_rectangle([390, 195, 530, 230], radius=6, fill=accent_bg)
-        draw.text((405, 203), status_label, fill=accent_color, font=get_font(14, bold=True))
+        draw.text((405, 203), status_label, fill=accent_color, font=get_custom_font(14, bold=True))
         
         # Giant ROI Badge
         roi_text = f"{roi:+.2f}%"
         draw.rounded_rectangle([560, 180, 890, 290], radius=16, fill=accent_color)
-        draw.text((590, 185), roi_text, fill="#ffffff", font=get_font(80, bold=True))
+        draw.text((590, 185), roi_text, fill="#ffffff", font=get_custom_font(80, bold=True))
         
         # Signal tag
         draw.rounded_rectangle([90, 305, 280, 340], radius=6, fill=divider_color)
-        draw.text((105, 313), f"Signal at Buy: {app_signal}", fill=text_secondary, font=get_font(14, bold=True))
+        draw.text((105, 313), f"Signal at Buy: {app_signal}", fill=text_secondary, font=get_custom_font(14, bold=True))
         
         # Grid of 4 cols x 2 rows
         col_w = 230
@@ -187,12 +218,12 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
             draw.rounded_rectangle([x1, y1, x2, y2], radius=12, fill=divider_color, outline=box_border, width=1)
             
             # Draw Centered Label
-            lbl_font = get_font(14, bold=False)
+            lbl_font = get_custom_font(14, bold=False)
             lbl_w = draw.textlength(lbl, font=lbl_font)
             draw.text((x1 + (col_w - lbl_w)/2, y1 + 18), lbl, fill=lbl_col, font=lbl_font)
             
             # Draw Centered Value
-            val_font = get_font(18, bold=True)
+            val_font = get_custom_font(18, bold=True)
             val_w = draw.textlength(val, font=val_font)
             draw.text((x1 + (col_w - val_w)/2, y1 + 48), val, fill=val_col, font=val_font)
             
@@ -207,14 +238,14 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
         # Giant ROI Banner
         draw.rounded_rectangle([90, 360, width - 90, 540], radius=24, fill=accent_color)
         roi_text = f"{roi:+.2f}%"
-        draw.text((130, 400), roi_text, fill="#ffffff", font=get_font(96, bold=True))
+        draw.text((130, 400), roi_text, fill="#ffffff", font=get_custom_font(96, bold=True))
         
         # Tags Row
         draw.rounded_rectangle([90, 580, 280, 620], radius=8, fill=accent_bg)
-        draw.text((105, 590), f"RESULT: {status_label}", fill=accent_color, font=get_font(16, bold=True))
+        draw.text((105, 590), f"RESULT: {status_label}", fill=accent_color, font=get_custom_font(16, bold=True))
         
         draw.rounded_rectangle([310, 580, 550, 620], radius=8, fill=divider_color)
-        draw.text((325, 590), f"SIGNAL: {app_signal} (Sc: {final_score})", fill=text_secondary, font=get_font(16, bold=True))
+        draw.text((325, 590), f"SIGNAL: {app_signal} (Sc: {final_score})", fill=text_secondary, font=get_custom_font(16, bold=True))
         
         draw.line([90, 660, width - 90, 660], fill=box_border, width=2)
         
@@ -248,13 +279,13 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
             
             draw.rounded_rectangle([x1, y1, x2, y2], radius=16, fill=divider_color, outline=box_border, width=1)
             
-            lbl_font = get_font(16, bold=False)
+            lbl_font = get_custom_font(16, bold=False)
             lbl_w = draw.textlength(lbl, font=lbl_font)
             draw.text((x1 + (col_w - lbl_w)/2, y1 + 25), lbl, fill=lbl_col, font=lbl_font)
             
-            val_font = get_font(22, bold=True)
+            val_font = get_custom_font(22, bold=True)
             if len(val) > 22:
-                val_font = get_font(16, bold=True)
+                val_font = get_custom_font(16, bold=True)
             val_w = draw.textlength(val, font=val_font)
             draw.text((x1 + (col_w - val_w)/2, y1 + 75), val, fill=val_col, font=val_font)
             
@@ -263,10 +294,10 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
         reason_box_y2 = reason_box_y1 + 130
         draw.rounded_rectangle([90, reason_box_y1, width - 90, reason_box_y2], radius=16, fill=divider_color, outline=box_border, width=1)
         
-        lbl_font = get_font(16, bold=False)
+        lbl_font = get_custom_font(16, bold=False)
         draw.text((120, reason_box_y1 + 20), "MAIN ENTRY REASON", fill=text_secondary, font=lbl_font)
         wrapped_reason = reason[:85] + "..." if len(reason) > 85 else reason
-        draw.text((120, reason_box_y1 + 60), wrapped_reason, fill=text_primary, font=get_font(20, bold=True))
+        draw.text((120, reason_box_y1 + 60), wrapped_reason, fill=text_primary, font=get_custom_font(20, bold=True))
         
         # Footer
         draw.line([90, height - 160, width - 90, height - 160], fill=box_border, width=2)
@@ -279,16 +310,16 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
         
         # Tags under Ticker
         draw.rounded_rectangle([90, 305, 250, 340], radius=6, fill=accent_bg)
-        draw.text((105, 313), status_label, fill=accent_color, font=get_font(14, bold=True))
+        draw.text((105, 313), status_label, fill=accent_color, font=get_custom_font(14, bold=True))
         
         draw.rounded_rectangle([280, 305, 490, 340], radius=6, fill=divider_color)
-        draw.text((295, 313), f"Signal: {app_signal} (Sc: {final_score})", fill=text_secondary, font=get_font(14, bold=True))
+        draw.text((295, 313), f"Signal: {app_signal} (Sc: {final_score})", fill=text_secondary, font=get_custom_font(14, bold=True))
         
         # Giant ROI Badge Right
         draw.rounded_rectangle([520, 185, width - 90, 335], radius=20, fill=accent_color)
         roi_text = f"{roi:+.2f}%"
         draw.text((560, 205), roi_text, fill="#ffffff", font=font_roi)
-        draw.text((560, 290), "REALIZED RETURN (ROI)", fill="#f1f5f9", font=get_font(15, bold=True))
+        draw.text((560, 290), "REALIZED RETURN (ROI)", fill="#f1f5f9", font=get_custom_font(15, bold=True))
         
         draw.line([90, 380, width - 90, 380], fill=box_border, width=2)
         
@@ -337,16 +368,16 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
             draw.rounded_rectangle([x1, y1, x2, y2], radius=16, fill=divider_color, outline=box_border, width=1)
             
             # Center Label
-            lbl_font = get_font(15, bold=False)
+            lbl_font = get_custom_font(15, bold=False)
             lbl_w = draw.textlength(lbl, font=lbl_font)
             draw.text((x1 + (col_w - lbl_w)/2, y1 + 25), lbl, fill=lbl_col, font=lbl_font)
             
             # Center Value
-            val_font = get_font(22, bold=True)
+            val_font = get_custom_font(22, bold=True)
             if len(val) > 20:
-                val_font = get_font(15, bold=True)
+                val_font = get_custom_font(15, bold=True)
             elif len(val) > 15:
-                val_font = get_font(18, bold=True)
+                val_font = get_custom_font(18, bold=True)
             val_w = draw.textlength(val, font=val_font)
             draw.text((x1 + (col_w - val_w)/2, y1 + 65), val, fill=val_col, font=val_font)
             
