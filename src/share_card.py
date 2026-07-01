@@ -5,8 +5,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ratio: str = "1080x1080") -> io.BytesIO:
     """
-    Generates a stunning, premium trading share card with focus on giant ROI typography.
-    Supports Formal Light, Formal Dark, and Executive Summary templates across 3 aspect ratios.
+    Generates a stunning, premium trading share card with a modern widget-card grid composition.
+    Maximizes text visibility by wrapping metrics inside individual card widgets.
     """
     # 1. Dimensions Setup
     if size_ratio == "1080x1920":
@@ -69,7 +69,8 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
         text_primary = "#0f172a"
         text_secondary = "#475569"
         text_muted = "#94a3b8"
-        divider_color = "#e2e8f0"
+        divider_color = "#f1f5f9" # box bg color
+        box_border = "#e2e8f0"
     elif is_exec:
         bg_canvas = "#09090b"
         bg_card = "#18181b"
@@ -77,7 +78,8 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
         text_primary = "#ffffff"
         text_secondary = "#a3a3a3"
         text_muted = "#525252"
-        divider_color = "#27272a"
+        divider_color = "#27272a" # box bg color
+        box_border = "#3f3f46"
     else: # Formal Dark
         bg_canvas = "#0d0e12"
         bg_card = "#16171e"
@@ -85,7 +87,8 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
         text_primary = "#ffffff"
         text_secondary = "#94a3b8"
         text_muted = "#4b5563"
-        divider_color = "#2e303f"
+        divider_color = "#22242f" # box bg color
+        box_border = "#2e303f"
 
     # Font Setup (Large Scale for high visibility)
     font_paths = [
@@ -109,10 +112,10 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
 
     font_title = get_font(34, bold=True)
     font_ticker = get_font(110, bold=True)
-    font_roi = get_font(100, bold=True) # Huge ROI
-    font_label = get_font(20, bold=False)
-    font_value = get_font(28, bold=True)
-    font_value_sm = get_font(23, bold=True)
+    font_roi = get_font(84, bold=True)
+    font_label = get_font(18, bold=False)
+    font_value = get_font(26, bold=True)
+    font_value_sm = get_font(22, bold=True)
     font_footer = get_font(18, bold=False)
     
     # 3. Canvas Painting
@@ -136,11 +139,10 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
     # Draw Header (Smart Saham Premium)
     draw.text((90, 85), "👑 Smart Saham Premium", fill="#f59e0b", font=font_title)
     draw.text((90, 130), f"CLOSED TRADE EXIT REPORT  •  {sell_date}", fill=text_secondary, font=font_label)
-    draw.line([90, 165, width - 90, 165], fill=divider_color, width=2)
+    draw.line([90, 165, width - 90, 165], fill=box_border, width=2)
     
-    # 4. ASPECT RATIO LAYOUT DRAWERS
+    # 4. ASPECT RATIO LAYOUT DRAWERS WITH WIDGET BOXES
     if size_ratio == "1200x628": # TELEGRAM PREVIEW (Wide Landscape)
-        # Ticker & ROI Side-by-Side
         draw.text((90, 185), ticker, fill=text_primary, font=font_ticker)
         
         # Outcome status label
@@ -153,48 +155,56 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
         draw.text((590, 185), roi_text, fill="#ffffff", font=get_font(80, bold=True))
         
         # Signal tag
-        draw.rounded_rectangle([90, 310, 280, 345], radius=6, fill=divider_color)
-        draw.text((105, 318), f"Signal at Buy: {app_signal}", fill=text_secondary, font=get_font(14, bold=True))
+        draw.rounded_rectangle([90, 305, 280, 340], radius=6, fill=divider_color)
+        draw.text((105, 313), f"Signal at Buy: {app_signal}", fill=text_secondary, font=get_font(14, bold=True))
         
-        # Grid layout (4 cols x 2 rows)
-        col_w = 260
-        row1_y = 385
-        row2_y = 485
+        # Grid of 4 cols x 2 rows
+        col_w = 230
+        row_h = 100
+        x_gap = 30
+        y_gap = 20
+        start_y = 370
         
-        # Col 0
-        draw.text((90, row1_y), "BUY PRICE", fill=text_secondary, font=font_label)
-        draw.text((90, row1_y + 30), f"Rp {buy_price:,.0f}", fill=text_primary, font=font_value)
-        draw.text((90, row2_y), "SELL PRICE", fill=text_secondary, font=font_label)
-        draw.text((90, row2_y + 30), f"Rp {sell_price:,.0f}", fill=text_primary, font=font_value)
+        metrics = [
+            ("BUY PRICE", f"Rp {buy_price:,.0f}", text_secondary, text_primary),
+            ("HOLDING TIME", f"{holding_days} Days", text_secondary, text_primary),
+            ("TP1 / TP2 HIT", f"{tp1_hit} / {tp2_hit}", text_secondary, text_primary),
+            ("MAX GAIN / DD", f"{max_gain:+.1f}% / {max_dd:+.1f}%", text_secondary, text_primary),
+            ("SELL PRICE", f"Rp {sell_price:,.0f}", text_secondary, text_primary),
+            ("REALIZED P/L", f"Rp {realized_pl:+,.0f}", text_secondary, accent_color),
+            ("SL HIT", sl_hit, text_secondary, text_primary),
+            ("FINAL SCORE", f"{final_score:.1f}", text_secondary, text_primary)
+        ]
         
-        # Col 1
-        draw.text((90 + col_w, row1_y), "HOLDING TIME", fill=text_secondary, font=font_label)
-        draw.text((90 + col_w, row1_y + 30), f"{holding_days} Days", fill=text_primary, font=font_value)
-        draw.text((90 + col_w, row2_y), "REALIZED P/L", fill=text_secondary, font=font_label)
-        draw.text((90 + col_w, row2_y + 30), f"Rp {realized_pl:+,.0f}", fill=accent_color, font=font_value)
-        
-        # Col 2
-        draw.text((90 + 2*col_w, row1_y), "TP1 / TP2 HIT", fill=text_secondary, font=font_label)
-        draw.text((90 + 2*col_w, row1_y + 30), f"{tp1_hit} / {tp2_hit}", fill=text_primary, font=font_value)
-        draw.text((90 + 2*col_w, row2_y), "SL HIT", fill=text_secondary, font=font_label)
-        draw.text((90 + 2*col_w, row2_y + 30), sl_hit, fill=text_primary, font=font_value)
-        
-        # Col 3
-        draw.text((90 + 3*col_w, row1_y), "MAX GAIN / DD", fill=text_secondary, font=font_label)
-        draw.text((90 + 3*col_w, row1_y + 30), f"{max_gain:+.1f}% / {max_dd:+.1f}%", fill=text_primary, font=font_value_sm)
-        draw.text((90 + 3*col_w, row2_y), "FINAL SCORE", fill=text_secondary, font=font_label)
-        draw.text((90 + 3*col_w, row2_y + 30), f"{final_score} (T:{tech_score}/F:{flow_score})", fill=text_primary, font=font_value_sm)
-        
+        for idx, (lbl, val, lbl_col, val_col) in enumerate(metrics):
+            c_idx = idx % 4
+            r_idx = idx // 4
+            x1 = 90 + c_idx * (col_w + x_gap)
+            y1 = start_y + r_idx * (row_h + y_gap)
+            x2 = x1 + col_w
+            y2 = y1 + row_h
+            
+            draw.rounded_rectangle([x1, y1, x2, y2], radius=12, fill=divider_color, outline=box_border, width=1)
+            
+            # Draw Centered Label
+            lbl_font = get_font(14, bold=False)
+            lbl_w = draw.textlength(lbl, font=lbl_font)
+            draw.text((x1 + (col_w - lbl_w)/2, y1 + 18), lbl, fill=lbl_col, font=lbl_font)
+            
+            # Draw Centered Value
+            val_font = get_font(18, bold=True)
+            val_w = draw.textlength(val, font=val_font)
+            draw.text((x1 + (col_w - val_w)/2, y1 + 48), val, fill=val_col, font=val_font)
+            
         # Footer
-        draw.line([90, 560, width - 90, 560], fill=divider_color, width=1)
+        draw.line([90, 560, width - 90, 560], fill=box_border, width=1)
         draw.text((90, 578), "For tracking & evaluation only. Not financial advice.", fill=text_muted, font=font_footer)
         draw.text((width - 340, 578), f"Generated: {datetime.now().strftime('%Y-%m-%d')}", fill=text_muted, font=font_footer)
 
-    elif size_ratio == "1080x1920": # INSTAGRAM STORY (Portrait)
-        # Giant Ticker
+    elif size_ratio == "1080x1920": # INSTAGRAM STORY (Vertical)
         draw.text((90, 220), ticker, fill=text_primary, font=font_ticker)
         
-        # Massive Centered ROI Banner
+        # Giant ROI Banner
         draw.rounded_rectangle([90, 360, width - 90, 540], radius=24, fill=accent_color)
         roi_text = f"{roi:+.2f}%"
         draw.text((130, 400), roi_text, fill="#ffffff", font=get_font(96, bold=True))
@@ -206,149 +216,146 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
         draw.rounded_rectangle([310, 580, 550, 620], radius=8, fill=divider_color)
         draw.text((325, 590), f"SIGNAL: {app_signal} (Sc: {final_score})", fill=text_secondary, font=get_font(16, bold=True))
         
-        draw.line([90, 660, width - 90, 660], fill=divider_color, width=2)
+        draw.line([90, 660, width - 90, 660], fill=box_border, width=2)
         
-        # Grid Parameters (2 Columns)
-        col_w = 460
-        row_y = 700
-        step_y = 150
+        # 2 Columns x 5 Rows Grid
+        col_w = 430
+        row_h = 150
+        x_gap = 40
+        y_gap = 30
+        start_y = 700
         
-        # Row 1
-        draw.text((90, row_y), "BUY PRICE", fill=text_secondary, font=font_label)
-        draw.text((90, row_y + 35), f"Rp {buy_price:,.0f} ({buy_date})", fill=text_primary, font=font_value)
-        draw.text((90 + col_w, row_y), "SELL PRICE", fill=text_secondary, font=font_label)
-        draw.text((90 + col_w, row_y + 35), f"Rp {sell_price:,.0f} ({sell_date})", fill=text_primary, font=font_value)
+        metrics = [
+            ("BUY PRICE", f"Rp {buy_price:,.0f} ({buy_date})", text_secondary, text_primary),
+            ("SELL PRICE", f"Rp {sell_price:,.0f} ({sell_date})", text_secondary, text_primary),
+            ("NET REALIZED P/L", f"Rp {realized_pl:+,.0f}", text_secondary, accent_color),
+            ("HOLDING PERIOD", f"{holding_days} Days", text_secondary, text_primary),
+            ("TP1 / TP2 TARGET", f"Rp {tp1:,.0f} / Rp {tp2:,.0f}" if (tp1 and tp2) else "N/A", text_secondary, text_primary),
+            ("STOP LOSS LIMIT", f"Rp {sl:,.0f}" if sl else "N/A", text_secondary, text_primary),
+            ("TP1 / TP2 HITS", f"{tp1_hit} / {tp2_hit}", text_secondary, text_primary),
+            ("STOP LOSS HIT", sl_hit, text_secondary, text_primary),
+            ("MAX GAIN AFTER BUY", f"{max_gain:+.2f}%", text_secondary, "#10b981"),
+            ("MAX DRAWDOWN AFTER BUY", f"{max_dd:+.2f}%", text_secondary, "#ef4444")
+        ]
         
-        # Row 2
-        draw.text((90, row_y + step_y), "NET REALIZED P/L", fill=text_secondary, font=font_label)
-        draw.text((90, row_y + step_y + 35), f"Rp {realized_pl:+,.0f}", fill=accent_color, font=font_value)
-        draw.text((90 + col_w, row_y + step_y), "HOLDING PERIOD", fill=text_secondary, font=font_label)
-        draw.text((90 + col_w, row_y + step_y + 35), f"{holding_days} Days", fill=text_primary, font=font_value)
+        for idx, (lbl, val, lbl_col, val_col) in enumerate(metrics):
+            c_idx = idx % 2
+            r_idx = idx // 2
+            x1 = 90 + c_idx * (col_w + x_gap)
+            y1 = start_y + r_idx * (row_h + y_gap)
+            x2 = x1 + col_w
+            y2 = y1 + row_h
+            
+            draw.rounded_rectangle([x1, y1, x2, y2], radius=16, fill=divider_color, outline=box_border, width=1)
+            
+            lbl_font = get_font(16, bold=False)
+            lbl_w = draw.textlength(lbl, font=lbl_font)
+            draw.text((x1 + (col_w - lbl_w)/2, y1 + 25), lbl, fill=lbl_col, font=lbl_font)
+            
+            val_font = get_font(22, bold=True)
+            if len(val) > 22:
+                val_font = get_font(16, bold=True)
+            val_w = draw.textlength(val, font=val_font)
+            draw.text((x1 + (col_w - val_w)/2, y1 + 75), val, fill=val_col, font=val_font)
+            
+        # Entry Reason full-width box at the bottom
+        reason_box_y1 = start_y + 5 * (row_h + y_gap)
+        reason_box_y2 = reason_box_y1 + 130
+        draw.rounded_rectangle([90, reason_box_y1, width - 90, reason_box_y2], radius=16, fill=divider_color, outline=box_border, width=1)
         
-        # Row 3
-        draw.text((90, row_y + 2*step_y), "TP1 / TP2 TARGET", fill=text_secondary, font=font_label)
-        draw.text((90, row_y + 2*step_y + 35), f"Rp {tp1:,.0f} / Rp {tp2:,.0f}" if (tp1 and tp2) else "N/A", fill=text_primary, font=font_value_sm)
-        draw.text((90 + col_w, row_y + 2*step_y), "STOP LOSS LIMIT", fill=text_secondary, font=font_label)
-        draw.text((90 + col_w, row_y + 2*step_y + 35), f"Rp {sl:,.0f}" if sl else "N/A", fill=text_primary, font=font_value)
-        
-        # Row 4
-        draw.text((90, row_y + 3*step_y), "TP1 / TP2 HITS", fill=text_secondary, font=font_label)
-        draw.text((90, row_y + 3*step_y + 35), f"{tp1_hit} / {tp2_hit}", fill=text_primary, font=font_value)
-        draw.text((90 + col_w, row_y + 3*step_y), "STOP LOSS HIT", fill=text_secondary, font=font_label)
-        draw.text((90 + col_w, row_y + 3*step_y + 35), sl_hit, fill=text_primary, font=font_value)
-        
-        # Row 5
-        draw.text((90, row_y + 4*step_y), "MAX GAIN AFTER BUY", fill=text_secondary, font=font_label)
-        draw.text((90, row_y + 4*step_y + 35), f"{max_gain:+.2f}%", fill="#10b981", font=font_value)
-        draw.text((90 + col_w, row_y + 4*step_y), "MAX DRAWDOWN AFTER BUY", fill=text_secondary, font=font_label)
-        draw.text((90 + col_w, row_y + 4*step_y + 35), f"{max_dd:+.2f}%", fill="#ef4444", font=font_value)
-        
-        # Scores block
-        draw.line([90, row_y + 5.1*step_y, width - 90, row_y + 5.1*step_y], fill=divider_color, width=1)
-        draw.text((90, row_y + 5.3*step_y), "TECHNICAL SCORE", fill=text_secondary, font=font_label)
-        draw.text((90, row_y + 5.3*step_y + 35), f"{tech_score}/100", fill=text_primary, font=font_value)
-        draw.text((90 + col_w, row_y + 5.3*step_y), "FLOW SCORE", fill=text_secondary, font=font_label)
-        draw.text((90 + col_w, row_y + 5.3*step_y + 35), f"{flow_score}/100", fill=text_primary, font=font_value)
-        
-        # Reasons
-        draw.text((90, row_y + 6.5*step_y), "MAIN ENTRY REASON", fill=text_secondary, font=font_label)
+        lbl_font = get_font(16, bold=False)
+        draw.text((120, reason_box_y1 + 20), "MAIN ENTRY REASON", fill=text_secondary, font=lbl_font)
         wrapped_reason = reason[:85] + "..." if len(reason) > 85 else reason
-        draw.text((90, row_y + 6.5*step_y + 35), wrapped_reason, fill=text_primary, font=get_font(18, bold=False))
+        draw.text((120, reason_box_y1 + 60), wrapped_reason, fill=text_primary, font=get_font(20, bold=True))
         
         # Footer
-        draw.line([90, height - 160, width - 90, height - 160], fill=divider_color, width=2)
+        draw.line([90, height - 160, width - 90, height - 160], fill=box_border, width=2)
         draw.text((90, height - 120), "For tracking & evaluation only. Not financial advice.", fill=text_muted, font=font_footer)
         draw.text((width - 340, height - 120), f"Generated: {datetime.now().strftime('%Y-%m-%d')}", fill=text_muted, font=font_footer)
 
-    else: # 1080x1080 INSTAGRAM FEED (Square)
-        # Giant Ticker Left
+    else: # 1080x1080 INSTAGRAM FEED (Square Grid)
+        # Ticker Left
         draw.text((90, 190), ticker, fill=text_primary, font=font_ticker)
         
-        # Tags underneath ticker
+        # Tags under Ticker
         draw.rounded_rectangle([90, 305, 250, 340], radius=6, fill=accent_bg)
         draw.text((105, 313), status_label, fill=accent_color, font=get_font(14, bold=True))
         
         draw.rounded_rectangle([280, 305, 490, 340], radius=6, fill=divider_color)
         draw.text((295, 313), f"Signal: {app_signal} (Sc: {final_score})", fill=text_secondary, font=get_font(14, bold=True))
         
-        # Huge ROI Badge Right
+        # Giant ROI Badge Right
         draw.rounded_rectangle([520, 185, width - 90, 335], radius=20, fill=accent_color)
         roi_text = f"{roi:+.2f}%"
         draw.text((560, 205), roi_text, fill="#ffffff", font=font_roi)
         draw.text((560, 290), "REALIZED RETURN (ROI)", fill="#f1f5f9", font=get_font(15, bold=True))
         
-        draw.line([90, 380, width - 90, 380], fill=divider_color, width=2)
+        draw.line([90, 380, width - 90, 380], fill=box_border, width=2)
+        
+        # Grid of 3 Columns x 3 Rows
+        margin_left = 90
+        col_w = 280
+        row_h = 135
+        x_gap = 30
+        y_gap = 25
+        start_y = 410
         
         if is_exec:
-            # Executive Summary Layout Grid (2 cols x 3 rows)
-            col_w = 460
-            row_y = 430
-            step_y = 150
-            
-            draw.text((90, row_y), "BUY PRICE", fill=text_secondary, font=font_label)
-            draw.text((90, row_y + 35), f"Rp {buy_price:,.0f}", fill=text_primary, font=font_value)
-            draw.text((90 + col_w, row_y), "SELL PRICE", fill=text_secondary, font=font_label)
-            draw.text((90 + col_w, row_y + 35), f"Rp {sell_price:,.0f}", fill=text_primary, font=font_value)
-            
-            draw.text((90, row_y + step_y), "HOLDING TIME", fill=text_secondary, font=font_label)
-            draw.text((90, row_y + step_y + 35), f"{holding_days} Days", fill=text_primary, font=font_value)
-            draw.text((90 + col_w, row_y + step_y), "NET REALIZED VALUE", fill=text_secondary, font=font_label)
-            draw.text((90 + col_w, row_y + step_y + 35), f"Rp {realized_pl:+,.0f}", fill=accent_color, font=font_value)
-            
-            draw.text((90, row_y + 2*step_y), "SIGNAL SETUP AT BUY", fill=text_secondary, font=font_label)
-            draw.text((90, row_y + 2*step_y + 35), f"Final Score: {final_score} (T:{tech_score}/F:{flow_score})", fill=text_primary, font=font_value)
-            draw.text((90 + col_w, row_y + 2*step_y), "EXIT STRATEGY", fill=text_secondary, font=font_label)
-            draw.text((90 + col_w, row_y + 2*step_y + 35), exit_type, fill=text_primary, font=font_value)
-            
+            metrics = [
+                ("BUY PRICE", f"Rp {buy_price:,.0f}", text_secondary, text_primary),
+                ("SELL PRICE", f"Rp {sell_price:,.0f}", text_secondary, text_primary),
+                ("NET REALIZED VALUE", f"Rp {realized_pl:+,.0f}", text_secondary, accent_color),
+                ("HOLDING TIME", f"{holding_days} Days", text_secondary, text_primary),
+                ("INITIAL SIGNAL", app_signal, text_secondary, tag_fg),
+                ("FINAL SCORE", f"{final_score:.1f}", text_secondary, text_primary),
+                ("TECHNICAL SCORE", f"{tech_score}/100", text_secondary, text_primary),
+                ("FLOW SCORE", f"{flow_score}/100", text_secondary, text_primary),
+                ("EXIT STRATEGY", exit_type, text_secondary, "#f59e0b")
+            ]
         else:
-            # Full grid (3 Columns x 3 rows)
-            col_w = 310
-            row_y = 415
-            step_y = 135
+            metrics = [
+                ("BUY PRICE", f"Rp {buy_price:,.0f}", text_secondary, text_primary),
+                ("SELL PRICE", f"Rp {sell_price:,.0f}", text_secondary, text_primary),
+                ("REALIZED P/L", f"Rp {realized_pl:+,.0f}", text_secondary, accent_color),
+                ("HOLDING TIME", f"{holding_days} Days", text_secondary, text_primary),
+                ("TP1 / TP2 TARGET", f"Rp {tp1:,.0f} / Rp {tp2:,.0f}" if (tp1 and tp2) else "N/A", text_secondary, text_primary),
+                ("STOP LOSS LIMIT", f"Rp {sl:,.0f}" if sl else "N/A", text_secondary, text_primary),
+                ("TP1 / TP2 HIT", f"{tp1_hit} / {tp2_hit}", text_secondary, text_primary),
+                ("SL HIT", sl_hit, text_secondary, text_primary),
+                ("MAX GAIN / DD", f"{max_gain:+.1f}% / {max_dd:+.1f}%", text_secondary, text_primary)
+            ]
             
-            # Row 1
-            draw.text((90, row_y), "BUY PRICE", fill=text_secondary, font=font_label)
-            draw.text((90, row_y + 35), f"Rp {buy_price:,.0f}", fill=text_primary, font=font_value)
-            draw.text((90 + col_w, row_y), "SELL PRICE", fill=text_secondary, font=font_label)
-            draw.text((90 + col_w, row_y + 35), f"Rp {sell_price:,.0f}", fill=text_primary, font=font_value)
-            draw.text((90 + 2*col_w, row_y), "REALIZED P/L", fill=text_secondary, font=font_label)
-            draw.text((90 + 2*col_w, row_y + 35), f"Rp {realized_pl:+,.0f}", fill=accent_color, font=font_value)
+        for idx, (lbl, val, lbl_col, val_col) in enumerate(metrics):
+            c_idx = idx % 3
+            r_idx = idx // 3
             
-            # Row 2
-            draw.text((90, row_y + step_y), "HOLDING TIME", fill=text_secondary, font=font_label)
-            draw.text((90, row_y + step_y + 35), f"{holding_days} Days", fill=text_primary, font=font_value)
-            draw.text((90 + col_w, row_y + step_y), "TP1 / TP2 TARGET", fill=text_secondary, font=font_label)
-            draw.text((90 + col_w, row_y + step_y + 35), f"Rp {tp1:,.0f} / Rp {tp2:,.0f}" if (tp1 and tp2) else "N/A", fill=text_primary, font=font_value_sm)
-            draw.text((90 + 2*col_w, row_y + step_y), "STOP LOSS LIMIT", fill=text_secondary, font=font_label)
-            draw.text((90 + 2*col_w, row_y + step_y + 35), f"Rp {sl:,.0f}" if sl else "N/A", fill=text_primary, font=font_value)
+            x1 = margin_left + c_idx * (col_w + x_gap)
+            y1 = start_y + r_idx * (row_h + y_gap)
+            x2 = x1 + col_w
+            y2 = y1 + row_h
             
-            # Row 3
-            draw.text((90, row_y + 2*step_y), "TP1 / TP2 HITS", fill=text_secondary, font=font_label)
-            draw.text((90, row_y + 2*step_y + 35), f"{tp1_hit} / {tp2_hit}", fill=text_primary, font=font_value)
-            draw.text((90 + col_w, row_y + 2*step_y), "STOP LOSS HIT", fill=text_secondary, font=font_label)
-            draw.text((90 + col_w, row_y + 2*step_y + 35), sl_hit, fill=text_primary, font=font_value)
-            draw.text((90 + 2*col_w, row_y + 2*step_y), "MAX GAIN / DD", fill=text_secondary, font=font_label)
-            draw.text((90 + 2*col_w, row_y + 2*step_y + 35), f"{max_gain:+.1f}% / {max_dd:+.1f}%", fill=text_primary, font=font_value_sm)
+            draw.rounded_rectangle([x1, y1, x2, y2], radius=16, fill=divider_color, outline=box_border, width=1)
             
-            # Row 4: Score details & Reason
-            draw.line([90, row_y + 3*step_y, width - 90, row_y + 3*step_y], fill=divider_color, width=1)
+            # Center Label
+            lbl_font = get_font(15, bold=False)
+            lbl_w = draw.textlength(lbl, font=lbl_font)
+            draw.text((x1 + (col_w - lbl_w)/2, y1 + 25), lbl, fill=lbl_col, font=lbl_font)
             
-            draw.text((90, row_y + 3*step_y + 20), "TECHNICAL SCORE", fill=text_secondary, font=font_label)
-            draw.text((90, row_y + 3*step_y + 50), f"{tech_score}/100", fill=text_primary, font=font_value)
+            # Center Value
+            val_font = get_font(22, bold=True)
+            if len(val) > 20:
+                val_font = get_font(15, bold=True)
+            elif len(val) > 15:
+                val_font = get_font(18, bold=True)
+            val_w = draw.textlength(val, font=val_font)
+            draw.text((x1 + (col_w - val_w)/2, y1 + 65), val, fill=val_col, font=val_font)
             
-            draw.text((90 + col_w, row_y + 3*step_y + 20), "FLOW SCORE", fill=text_secondary, font=font_label)
-            draw.text((90 + col_w, row_y + 3*step_y + 50), f"{flow_score}/100", fill=text_primary, font=font_value)
-            
-            draw.text((90 + 2*col_w, row_y + 3*step_y + 20), "MAIN REASON", fill=text_secondary, font=font_label)
-            wrapped_reason = reason[:30] + "..." if len(reason) > 30 else reason
-            draw.text((90 + 2*col_w, row_y + 3*step_y + 50), wrapped_reason, fill=text_primary, font=font_value_sm)
-            
-        # Footer (Unified for 1080x1080)
-        draw.line([90, height - 140, width - 90, height - 140], fill=divider_color, width=2)
+        # Footer
+        draw.line([90, height - 140, width - 90, height - 140], fill=box_border, width=2)
         draw.text((90, height - 100), "For tracking & evaluation only. Not financial advice.", fill=text_muted, font=font_footer)
         draw.text((width - 340, height - 100), f"Generated: {datetime.now().strftime('%Y-%m-%d')}", fill=text_muted, font=font_footer)
 
-    # 5. Save and Return
+    # 5. Save and Return Byte Stream
     buf = io.BytesIO()
     img.save(buf, format="PNG")
     buf.seek(0)

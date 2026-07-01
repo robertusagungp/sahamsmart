@@ -1473,8 +1473,8 @@ For tracking & evaluation only. Not financial advice."""
                     )
                     
                     # Telegram credentials fetch
-                    bot_token_social = st.session_state.get("tg_bot_token", os.environ.get("TELEGRAM_BOT_TOKEN", ""))
-                    chat_id_social = st.session_state.get("tg_group_id", os.environ.get("TELEGRAM_GROUP_ID", ""))
+                    bot_token_social = tg_bot_token if tg_bot_token else os.environ.get("TELEGRAM_BOT_TOKEN", "")
+                    chat_id_social = tg_chat_id if tg_chat_id else os.environ.get("TELEGRAM_CHAT_ID", "")
                     
                     if not bot_token_social or not chat_id_social:
                         st.warning("⚠️ Konfigurasi Telegram Bot belum lengkap di sidebar kiri (khusus admin 'fra') untuk mengirim langsung.")
