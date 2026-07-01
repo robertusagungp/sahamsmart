@@ -11,8 +11,9 @@ from src.indicators import calculate_technical_indicators
 from src.scoring import calculate_score
 from src.storage import AnalysisStorage
 from src.stock_list import get_all_idx_tickers, get_idx_stocks_df, IDX_JII70_TICKERS, is_sharia_compliant
-from src.telegram_bot import send_telegram_alert
+from src.telegram_bot import send_telegram_alert, send_telegram_photo
 from src.portfolio_evaluator import run_portfolio_evaluation
+from src.share_card import generate_share_card
 
 # Set page configuration with a modern title and wide layout
 st.set_page_config(
@@ -533,9 +534,9 @@ if "results" in st.session_state and st.session_state["results"]:
     is_admin = st.session_state["username"] == "fra"
     
     if is_admin:
-        tab_screener, tab_history, tab_portfolio, tab_activities = st.tabs(["📊 Screener & Ranking", "📜 Histori Rekomendasi", "💼 Portfolio & Accuracy", "🔐 Audit Aktivitas User (Neon DB)"])
+        tab_screener, tab_history, tab_portfolio, tab_social, tab_activities = st.tabs(["📊 Screener & Ranking", "📜 Histori Rekomendasi", "💼 Portfolio & Accuracy", "📢 Social Report", "🔐 Audit Aktivitas User (Neon DB)"])
     else:
-        tab_screener, tab_history, tab_portfolio = st.tabs(["📊 Screener & Ranking", "📜 Histori Rekomendasi", "💼 Portfolio & Accuracy"])
+        tab_screener, tab_history, tab_portfolio, tab_social = st.tabs(["📊 Screener & Ranking", "📜 Histori Rekomendasi", "💼 Portfolio & Accuracy", "📢 Social Report"])
     
     with tab_screener:
         # Highlights Metrics Layout
@@ -1361,8 +1362,86 @@ if "results" in st.session_state and st.session_state["results"]:
                     mime="text/csv",
                     use_container_width=True
                 )
+
+    with tab_social:
+        st.header("📢 Social Share Card & Exit Report")
+        st.write("Generate kartu performa visual (Share Card) formal yang elegan untuk transaksi yang sudah ditutup (*Closed Position*). Kartu ini dapat diunduh atau dikirim langsung ke grup Telegram.")
+        
+        df_eval_social = storage.get_trade_evaluations(st.session_state["username"])
+        df_closed_social = df_eval_social[df_eval_social['status'] == 'Closed Position'] if not df_eval_social.empty else pd.DataFrame()
+        
+        if not df_closed_social.empty:
+            col_sc_sel, col_sc_act = st.columns([1, 1])
+            with col_sc_sel:
+                selected_social_id = st.selectbox(
+                    "Pilih Transaksi untuk Di-Share:",
+                    options=df_closed_social["trade_id"].tolist(),
+                    format_func=lambda x: f"{df_closed_social[df_closed_social['trade_id'] == x]['ticker'].values[0]} | ROI: {df_closed_social[df_closed_social['trade_id'] == x]['return_percentage'].values[0]:+.2f}% ({df_closed_social[df_closed_social['trade_id'] == x]['exit_type'].values[0]})",
+                    key="sel_social_trade_id"
+                )
+                
+                trade_data_social = df_closed_social[df_closed_social["trade_id"] == selected_social_id].iloc[0].to_dict()
+                
+                # Generate Share Card Image in memory
+                img_bytes = generate_share_card(trade_data_social)
+                
+                # Preview image
+                st.image(img_bytes, caption=f"Preview Share Card {trade_data_social['ticker']}", width=400)
+                
+            with col_sc_act:
+                st.subheader("📤 Aksi Bagikan Card")
+                
+                # Download button
+                st.download_button(
+                    label="📥 Unduh Gambar (PNG)",
+                    data=img_bytes,
+                    file_name=f"Smart_Saham_Exit_{trade_data_social['ticker'].split('.')[0]}.png",
+                    mime="image/png",
+                    use_container_width=True
+                )
+                
+                st.write("")
+                st.markdown("---")
+                st.write("🚀 **Kirim ke Telegram Channel / Group**")
+                
+                # Custom caption text area
+                ticker_clean = trade_data_social['ticker'].split('.')[0]
+                roi_val = trade_data_social['return_percentage']
+                roi_emoji = "🟢" if roi_val >= 0 else "🔴"
+                default_caption = f"""👑 <b>[EVALUASI CLOSED POSITION]</b> 👑
+                
+📊 Ticker: <b>#{ticker_clean}</b>
+Sinyal Awal: <b>{trade_data_social['app_signal_at_buy']}</b>
+
+📊 <b>Hasil Transaksi:</b>
+• Net Return: <b>{roi_emoji} {roi_val:+.2f}%</b>
+• Durasi Hold: <b>{trade_data_social['holding_days']} Hari</b>
+• Tipe Exit: <b>{trade_data_social['exit_type']}</b>
+
+<i>Analisis performa & evaluasi akurasi otomatis oleh Smart Saham Premium.</i>"""
+                
+                custom_caption = st.text_area(
+                    "Pesan Keterangan (Caption) Telegram:",
+                    value=default_caption.replace("                ", ""), # clean indentation tabs
+                    height=200
+                )
+                
+                # Telegram configuration inputs
+                bot_token_social = st.session_state.get("tg_bot_token", os.environ.get("TELEGRAM_BOT_TOKEN", ""))
+                chat_id_social = st.session_state.get("tg_group_id", os.environ.get("TELEGRAM_GROUP_ID", ""))
+                
+                if not bot_token_social or not chat_id_social:
+                    st.warning("⚠️ Konfigurasi Telegram Bot tidak ditemukan. Silakan isi konfigurasi bot di sidebar kiri (khusus admin 'fra') untuk mengaktifkan fitur kirim foto.")
+                else:
+                    if st.button("📤 Kirim Foto ke Telegram", use_container_width=True):
+                        with st.spinner("Mengirim gambar ke Telegram..."):
+                            success, msg = send_telegram_photo(bot_token_social, chat_id_social, img_bytes, custom_caption)
+                            if success:
+                                st.success(msg)
+                            else:
+                                st.error(msg)
         else:
-            st.info("Portofolio transaksi riil Anda masih kosong. Silakan catat transaksi pembelian pertama Anda di atas!")
+            st.info("💡 Belum ada posisi portofolio yang ditutup (Closed Position). Anda dapat melakukan penjualan posisi aktif terlebih dahulu di tab **💼 Portfolio & Accuracy** untuk mencatatkan data exit.")
 
     if is_admin:
         with tab_activities:

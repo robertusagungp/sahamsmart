@@ -1,4 +1,5 @@
 import requests
+import io
 from typing import Dict, Tuple, Any
 
 def send_telegram_alert(bot_token: str, chat_id: str, record: Dict[str, Any]) -> Tuple[bool, str]:
@@ -74,6 +75,38 @@ Sinyal: <b>{signal_emoji}</b>
         res_json = response.json()
         if response.status_code == 200 and res_json.get("ok"):
             return True, "Alert berhasil dikirim ke Telegram!"
+        else:
+            err_desc = res_json.get("description", "Unknown error")
+            return False, f"Telegram API Error: {err_desc}"
+    except Exception as e:
+        return False, f"Koneksi gagal: {str(e)}"
+
+def send_telegram_photo(bot_token: str, chat_id: str, img_bytes: io.BytesIO, caption: str) -> Tuple[bool, str]:
+    """
+    Sends a photo (image bytes) to a Telegram Group/Channel using the sendPhoto endpoint.
+    """
+    if not bot_token or not chat_id:
+        return False, "Token Bot atau Chat ID tidak lengkap. Konfigurasikan di sidebar."
+        
+    url = f"https://api.telegram.org/bot{bot_token}/sendPhoto"
+    
+    # Ensure image bytes is at beginning
+    img_bytes.seek(0)
+    
+    files = {
+        "photo": ("share_card.png", img_bytes, "image/png")
+    }
+    payload = {
+        "chat_id": chat_id,
+        "caption": caption,
+        "parse_mode": "HTML"
+    }
+    
+    try:
+        response = requests.post(url, data=payload, files=files, timeout=15)
+        res_json = response.json()
+        if response.status_code == 200 and res_json.get("ok"):
+            return True, "Share Card berhasil dikirim ke Telegram!"
         else:
             err_desc = res_json.get("description", "Unknown error")
             return False, f"Telegram API Error: {err_desc}"
