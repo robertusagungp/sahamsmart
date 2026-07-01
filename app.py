@@ -144,7 +144,6 @@ if not db_url:
 
 storage = AnalysisStorage(db_url=db_url)
 
-@st.cache_resource
 def get_loader():
     return StockDataLoader()
 
