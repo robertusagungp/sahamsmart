@@ -97,6 +97,73 @@ class AnalysisStorage:
                 Column('timestamp', DateTime, default=datetime.utcnow)
             )
             
+            # 4. User Watchlist Table
+            self.table_watchlist = Table(
+                'user_watchlist', metadata,
+                Column('id', Integer, primary_key=True, autoincrement=True),
+                Column('username', String(50), nullable=False),
+                Column('ticker', String(20), nullable=False),
+                Column('added_date', Date, nullable=False),
+                Column('app_signal_when_added', String(20), nullable=True),
+                Column('final_score_when_added', Float, nullable=True),
+                Column('notes', String(255), nullable=True),
+                Column('status', String(20), default="Watch Only")
+            )
+            
+            # 5. Real Trades Table
+            self.table_real_trades = Table(
+                'real_trades', metadata,
+                Column('trade_id', Integer, primary_key=True, autoincrement=True),
+                Column('username', String(50), nullable=False),
+                Column('ticker', String(20), nullable=False),
+                Column('buy_date', Date, nullable=False),
+                Column('buy_price', Float, nullable=False),
+                Column('lot_quantity', Integer, nullable=False),
+                Column('total_value', Float, nullable=False),
+                Column('app_signal_at_buy', String(20), nullable=True),
+                Column('technical_score_at_buy', Float, nullable=True),
+                Column('flow_score_at_buy', Float, nullable=True),
+                Column('final_score_at_buy', Float, nullable=True),
+                Column('entry_area_at_buy', String(50), nullable=True),
+                Column('tp1_at_buy', Float, nullable=True),
+                Column('tp2_at_buy', Float, nullable=True),
+                Column('sl_at_buy', Float, nullable=True),
+                Column('reason_at_buy', String(255), nullable=True),
+                Column('risk_note_at_buy', String(255), nullable=True),
+                Column('sell_date', Date, nullable=True),
+                Column('sell_price', Float, nullable=True),
+                Column('sell_reason', String(255), nullable=True),
+                Column('exit_type', String(50), nullable=True),
+                Column('status', String(20), default="Open Position"),
+                Column('user_notes', String(255), nullable=True),
+                Column('created_at', DateTime, default=datetime.utcnow),
+                Column('updated_at', DateTime, default=datetime.utcnow)
+            )
+            
+            # 6. Trade Evaluation Table
+            self.table_trade_evaluation = Table(
+                'trade_evaluation', metadata,
+                Column('evaluation_id', Integer, primary_key=True, autoincrement=True),
+                Column('trade_id', Integer, nullable=False, unique=True),
+                Column('ticker', String(20), nullable=False),
+                Column('current_price', Float, nullable=True),
+                Column('realized_profit_loss', Float, nullable=True),
+                Column('unrealized_profit_loss', Float, nullable=True),
+                Column('return_percentage', Float, nullable=True),
+                Column('holding_days', Integer, nullable=True),
+                Column('tp1_hit', Integer, default=0),
+                Column('tp1_hit_date', Date, nullable=True),
+                Column('tp2_hit', Integer, default=0),
+                Column('tp2_hit_date', Date, nullable=True),
+                Column('sl_hit', Integer, default=0),
+                Column('sl_hit_date', Date, nullable=True),
+                Column('max_gain_after_buy', Float, nullable=True),
+                Column('max_drawdown_after_buy', Float, nullable=True),
+                Column('prediction_result', String(50), nullable=True),
+                Column('prediction_result_detail', String(255), nullable=True),
+                Column('evaluated_at', DateTime, default=datetime.utcnow)
+            )
+            
             metadata.create_all(self.engine)
             print("Database tables initialized successfully.")
         except Exception as e:
@@ -334,3 +401,264 @@ class AnalysisStorage:
                 print(f"Failed to read CSV: {str(e)}")
                 
         return pd.DataFrame()
+
+    # ================= WATCHLIST OPERATIONS =================
+
+    def add_to_watchlist(self, username: str, ticker: str, signal: str, score: float, notes: str = "") -> bool:
+        if not self.engine:
+            return False
+        try:
+            from sqlalchemy import text
+            from datetime import date
+            with self.engine.begin() as conn:
+                # Check if already exists in watchlist
+                exists = conn.conn.execute(
+                    text("SELECT id FROM user_watchlist WHERE LOWER(username) = :u AND UPPER(ticker) = :t"),
+                    {"u": username.lower(), "t": ticker.upper()}
+                ).fetchone() if hasattr(conn, "conn") else conn.execute(
+                    text("SELECT id FROM user_watchlist WHERE LOWER(username) = :u AND UPPER(ticker) = :t"),
+                    {"u": username.lower(), "t": ticker.upper()}
+                ).fetchone()
+                
+                if exists:
+                    # Update status
+                    if hasattr(conn, "conn"):
+                        conn.conn.execute(
+                            text("UPDATE user_watchlist SET status = 'Watch Only', added_date = :d, app_signal_when_added = :s, final_score_when_added = :sc, notes = :n WHERE id = :id"),
+                            {"d": date.today(), "s": signal, "sc": score, "n": notes, "id": exists[0]}
+                        )
+                    else:
+                        conn.execute(
+                            text("UPDATE user_watchlist SET status = 'Watch Only', added_date = :d, app_signal_when_added = :s, final_score_when_added = :sc, notes = :n WHERE id = :id"),
+                            {"d": date.today(), "s": signal, "sc": score, "n": notes, "id": exists[0]}
+                        )
+                else:
+                    # Insert new
+                    if hasattr(conn, "conn"):
+                        conn.conn.execute(
+                            text("INSERT INTO user_watchlist (username, ticker, added_date, app_signal_when_added, final_score_when_added, notes, status) VALUES (:u, :t, :d, :s, :sc, :n, 'Watch Only')"),
+                            {"u": username.lower(), "t": ticker.upper(), "d": date.today(), "s": signal, "sc": score, "n": notes}
+                        )
+                    else:
+                        conn.execute(
+                            text("INSERT INTO user_watchlist (username, ticker, added_date, app_signal_when_added, final_score_when_added, notes, status) VALUES (:u, :t, :d, :s, :sc, :n, 'Watch Only')"),
+                            {"u": username.lower(), "t": ticker.upper(), "d": date.today(), "s": signal, "sc": score, "n": notes}
+                        )
+            return True
+        except Exception as e:
+            print(f"Error adding to watchlist: {str(e)}")
+            return False
+
+    def get_watchlist(self, username: str) -> pd.DataFrame:
+        if not self.engine:
+            return pd.DataFrame()
+        try:
+            query = f"SELECT id, ticker, added_date, app_signal_when_added, final_score_when_added, notes, status FROM user_watchlist WHERE LOWER(username) = '{username.lower()}' AND status = 'Watch Only'"
+            return pd.read_sql(query, con=self.engine)
+        except Exception as e:
+            print(f"Error fetching watchlist: {str(e)}")
+            return pd.DataFrame()
+
+    def remove_from_watchlist(self, username: str, ticker: str) -> bool:
+        if not self.engine:
+            return False
+        try:
+            from sqlalchemy import text
+            with self.engine.begin() as conn:
+                if hasattr(conn, "conn"):
+                    conn.conn.execute(
+                        text("DELETE FROM user_watchlist WHERE LOWER(username) = :u AND UPPER(ticker) = :t"),
+                        {"u": username.lower(), "t": ticker.upper()}
+                    )
+                else:
+                    conn.execute(
+                        text("DELETE FROM user_watchlist WHERE LOWER(username) = :u AND UPPER(ticker) = :t"),
+                        {"u": username.lower(), "t": ticker.upper()}
+                    )
+            return True
+        except Exception as e:
+            print(f"Error removing from watchlist: {str(e)}")
+            return False
+
+    # ================= REAL TRADES & EVALUATIONS OPERATIONS =================
+
+    def add_real_trade(self, username: str, ticker: str, buy_date: Any, buy_price: float, lot_quantity: int, score_data: Dict[str, Any], user_notes: str = "") -> bool:
+        if not self.engine:
+            return False
+        try:
+            from sqlalchemy import text
+            total_value = buy_price * lot_quantity * 100 # 1 lot = 100 shares in Indonesia
+            
+            with self.engine.begin() as conn:
+                query_str = """
+                    INSERT INTO real_trades (
+                        username, ticker, buy_date, buy_price, lot_quantity, total_value,
+                        app_signal_at_buy, technical_score_at_buy, flow_score_at_buy, final_score_at_buy,
+                        entry_area_at_buy, tp1_at_buy, tp2_at_buy, sl_at_buy, reason_at_buy, risk_note_at_buy,
+                        status, user_notes, created_at, updated_at
+                    ) VALUES (
+                        :username, :ticker, :buy_date, :buy_price, :lot_quantity, :total_value,
+                        :app_signal, :tech_score, :flow_score, :final_score,
+                        :entry_area, :tp1, :tp2, :sl, :reason, :risk_note,
+                        'Open Position', :user_notes, :now, :now
+                    )
+                """
+                params = {
+                    "username": username.lower(),
+                    "ticker": ticker.upper(),
+                    "buy_date": buy_date,
+                    "buy_price": buy_price,
+                    "lot_quantity": lot_quantity,
+                    "total_value": total_value,
+                    "app_signal": score_data.get("recommendation", "BUY"),
+                    "tech_score": score_data.get("technical_score", 0),
+                    "flow_score": score_data.get("flow_score", 0),
+                    "final_score": score_data.get("final_score", 0),
+                    "entry_area": score_data.get("entry_area", ""),
+                    "tp1": float(score_data.get("tp1", 0)) if isinstance(score_data.get("tp1"), (int, float)) else 0.0,
+                    "tp2": float(score_data.get("tp2", 0)) if isinstance(score_data.get("tp2"), (int, float)) else 0.0,
+                    "sl": float(score_data.get("sl", 0)) if isinstance(score_data.get("sl"), (int, float)) else 0.0,
+                    "reason": score_data.get("entry_reason", ""),
+                    "risk_note": "; ".join([r.replace("[Teknikal] ", "").replace("[Flow] ", "").replace("[Sinyal] ", "") for r in score_data.get("risks", []) if "Tidak ada" not in r][:2]),
+                    "user_notes": user_notes,
+                    "now": datetime.utcnow()
+                }
+                if hasattr(conn, "conn"):
+                    conn.conn.execute(text(query_str), params)
+                else:
+                    conn.execute(text(query_str), params)
+            return True
+        except Exception as e:
+            print(f"Error adding real trade: {str(e)}")
+            return False
+
+    def sell_real_trade(self, trade_id: int, sell_date: Any, sell_price: float, sell_reason: str, exit_type: str) -> bool:
+        if not self.engine:
+            return False
+        try:
+            from sqlalchemy import text
+            with self.engine.begin() as conn:
+                query_str = """
+                    UPDATE real_trades 
+                    SET sell_date = :sell_date, sell_price = :sell_price, 
+                        sell_reason = :sell_reason, exit_type = :exit_type, 
+                        status = 'Closed Position', updated_at = :now
+                    WHERE trade_id = :trade_id
+                """
+                params = {
+                    "trade_id": trade_id,
+                    "sell_date": sell_date,
+                    "sell_price": sell_price,
+                    "sell_reason": sell_reason,
+                    "exit_type": exit_type,
+                    "now": datetime.utcnow()
+                }
+                if hasattr(conn, "conn"):
+                    conn.conn.execute(text(query_str), params)
+                else:
+                    conn.execute(text(query_str), params)
+            return True
+        except Exception as e:
+            print(f"Error selling real trade: {str(e)}")
+            return False
+
+    def get_real_trades(self, username: str) -> pd.DataFrame:
+        if not self.engine:
+            return pd.DataFrame()
+        try:
+            query = f"SELECT * FROM real_trades WHERE LOWER(username) = '{username.lower()}'"
+            return pd.read_sql(query, con=self.engine)
+        except Exception as e:
+            print(f"Error fetching real trades: {str(e)}")
+            return pd.DataFrame()
+
+    def get_trade_evaluations(self, username: str) -> pd.DataFrame:
+        if not self.engine:
+            return pd.DataFrame()
+        try:
+            query = f"""
+                SELECT t.*, e.current_price, e.realized_profit_loss, e.unrealized_profit_loss, 
+                       e.return_percentage, e.holding_days, e.tp1_hit, e.tp1_hit_date, 
+                       e.tp2_hit, e.tp2_hit_date, e.sl_hit, e.sl_hit_date, 
+                       e.max_gain_after_buy, e.max_drawdown_after_buy, 
+                       e.prediction_result, e.prediction_result_detail, e.evaluated_at
+                FROM real_trades t
+                LEFT JOIN trade_evaluation e ON t.trade_id = e.trade_id
+                WHERE LOWER(t.username) = '{username.lower()}'
+            """
+            return pd.read_sql(query, con=self.engine)
+        except Exception as e:
+            print(f"Error fetching trade evaluations: {str(e)}")
+            return pd.DataFrame()
+
+    def save_or_update_evaluation(self, eval_data: Dict[str, Any]) -> bool:
+        if not self.engine:
+            return False
+        try:
+            from sqlalchemy import text
+            trade_id = eval_data["trade_id"]
+            
+            with self.engine.begin() as conn:
+                # Check if exists
+                exists_query = text("SELECT evaluation_id FROM trade_evaluation WHERE trade_id = :tid")
+                exists = conn.conn.execute(exists_query, {"tid": trade_id}).fetchone() if hasattr(conn, "conn") else conn.execute(exists_query, {"tid": trade_id}).fetchone()
+                
+                params = {
+                    "tid": trade_id,
+                    "ticker": eval_data["ticker"],
+                    "curr_price": eval_data.get("current_price"),
+                    "real_pl": eval_data.get("realized_profit_loss"),
+                    "unreal_pl": eval_data.get("unrealized_profit_loss"),
+                    "ret_pct": eval_data.get("return_percentage"),
+                    "hold_days": eval_data.get("holding_days"),
+                    "tp1_hit": 1 if eval_data.get("tp1_hit") else 0,
+                    "tp1_date": eval_data.get("tp1_hit_date"),
+                    "tp2_hit": 1 if eval_data.get("tp2_hit") else 0,
+                    "tp2_date": eval_data.get("tp2_hit_date"),
+                    "sl_hit": 1 if eval_data.get("sl_hit") else 0,
+                    "sl_date": eval_data.get("sl_hit_date"),
+                    "max_gain": eval_data.get("max_gain_after_buy"),
+                    "max_dd": eval_data.get("max_drawdown_after_buy"),
+                    "pred_res": eval_data.get("prediction_result"),
+                    "pred_res_det": eval_data.get("prediction_result_detail"),
+                    "now": datetime.utcnow()
+                }
+                
+                if exists:
+                    update_str = """
+                        UPDATE trade_evaluation 
+                        SET current_price = :curr_price, realized_profit_loss = :real_pl,
+                            unrealized_profit_loss = :unreal_pl, return_percentage = :ret_pct,
+                            holding_days = :hold_days, tp1_hit = :tp1_hit, tp1_hit_date = :tp1_date,
+                            tp2_hit = :tp2_hit, tp2_hit_date = :tp2_date, sl_hit = :sl_hit, sl_hit_date = :sl_date,
+                            max_gain_after_buy = :max_gain, max_drawdown_after_buy = :max_dd,
+                            prediction_result = :pred_res, prediction_result_detail = :pred_res_det,
+                            evaluated_at = :now
+                        WHERE trade_id = :tid
+                    """
+                    if hasattr(conn, "conn"):
+                        conn.conn.execute(text(update_str), params)
+                    else:
+                        conn.execute(text(update_str), params)
+                else:
+                    insert_str = """
+                        INSERT INTO trade_evaluation (
+                            trade_id, ticker, current_price, realized_profit_loss, unrealized_profit_loss,
+                            return_percentage, holding_days, tp1_hit, tp1_hit_date, tp2_hit, tp2_hit_date,
+                            sl_hit, sl_hit_date, max_gain_after_buy, max_drawdown_after_buy,
+                            prediction_result, prediction_result_detail, evaluated_at
+                        ) VALUES (
+                            :tid, :ticker, :curr_price, :real_pl, :unreal_pl,
+                            :ret_pct, :hold_days, :tp1_hit, :tp1_date, :tp2_hit, :tp2_date,
+                            :sl_hit, :sl_date, :max_gain, :max_dd,
+                            :pred_res, :pred_res_det, :now
+                        )
+                    """
+                    if hasattr(conn, "conn"):
+                        conn.conn.execute(text(insert_str), params)
+                    else:
+                        conn.execute(text(insert_str), params)
+            return True
+        except Exception as e:
+            print(f"Error saving trade evaluation: {str(e)}")
+            return False

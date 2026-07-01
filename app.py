@@ -12,6 +12,7 @@ from src.scoring import calculate_score
 from src.storage import AnalysisStorage
 from src.stock_list import get_all_idx_tickers, get_idx_stocks_df, IDX_JII70_TICKERS, is_sharia_compliant
 from src.telegram_bot import send_telegram_alert
+from src.portfolio_evaluator import run_portfolio_evaluation
 
 # Set page configuration with a modern title and wide layout
 st.set_page_config(
@@ -532,9 +533,9 @@ if "results" in st.session_state and st.session_state["results"]:
     is_admin = st.session_state["username"] == "fra"
     
     if is_admin:
-        tab_screener, tab_history, tab_activities = st.tabs(["📊 Screener & Ranking", "📜 Histori Rekomendasi", "🔐 Audit Aktivitas User (Neon DB)"])
+        tab_screener, tab_history, tab_portfolio, tab_activities = st.tabs(["📊 Screener & Ranking", "📜 Histori Rekomendasi", "💼 Portfolio & Accuracy", "🔐 Audit Aktivitas User (Neon DB)"])
     else:
-        tab_screener, tab_history = st.tabs(["📊 Screener & Ranking", "📜 Histori Rekomendasi"])
+        tab_screener, tab_history, tab_portfolio = st.tabs(["📊 Screener & Ranking", "📜 Histori Rekomendasi", "💼 Portfolio & Accuracy"])
     
     with tab_screener:
         # Highlights Metrics Layout
@@ -930,6 +931,433 @@ if "results" in st.session_state and st.session_state["results"]:
         except Exception as e:
             st.error(f"Gagal memuat log data dari database: {str(e)}")
             
+
+    with tab_portfolio:
+        st.header("💼 Watchlist & Tracking Portofolio Riil")
+        st.write("Pantau saham yang Anda masukkan ke watchlist atau yang benar-benar Anda beli di pasar riil untuk mengevaluasi tingkat akurasi sinyal aplikasi.")
+        
+        # 1. Automatic/Manual Evaluation Trigger on load
+        if "portfolio_evaluated" not in st.session_state:
+            with st.spinner("Mengupdate harga portofolio & akurasi sinyal..."):
+                run_portfolio_evaluation(storage, loader, st.session_state["username"])
+                st.session_state["portfolio_evaluated"] = True
+                
+        if st.button("🔄 Segarkan Data & Update Evaluasi Harga Terbaru", key="btn_eval_refresh", use_container_width=True):
+            with st.spinner("Mengunduh harga historis & mengkalkulasi ulang data portofolio..."):
+                run_portfolio_evaluation(storage, loader, st.session_state["username"])
+                st.toast("Portofolio berhasil diupdate!", icon="✅")
+                
+        # Get data
+        df_watch = storage.get_watchlist(st.session_state["username"])
+        df_eval = storage.get_trade_evaluations(st.session_state["username"])
+        
+        # 2. ADD TO WATCHLIST OR REAL BUY FORM
+        st.subheader("➕ Tambah Data Sinyal (Watchlist / Real Buy)")
+        col_add1, col_add2 = st.columns(2)
+        with col_add1:
+            screened_tickers_list = [r["ticker"] for r in results] if "results" in st.session_state else []
+            selected_add_ticker = st.selectbox(
+                "Pilih Saham Hasil Screen:",
+                options=["(Pilih Ticker)"] + screened_tickers_list + list(IDX_STOCKS.keys()),
+                key="sel_add_ticker"
+            )
+            user_notes_add = st.text_input("Catatan Tambahan User:", "", key="txt_add_notes")
+            
+        with col_add2:
+            if selected_add_ticker != "(Pilih Ticker)":
+                # Find or fetch snapshot score details
+                ticker_score_data = None
+                if "results" in st.session_state:
+                    ticker_score_data = next((r for r in results if r["ticker"] == selected_add_ticker), None)
+                
+                if not ticker_score_data:
+                    df_h = loader.fetch_historical_data(selected_add_ticker, period="1y")
+                    if df_h is not None and not df_h.empty:
+                        ind = calculate_technical_indicators(df_h)
+                        if ind:
+                            q = loader.fetch_latest_quote(selected_add_ticker)
+                            cl = q.get("currentPrice", ind["close"])
+                            ind["close"] = cl
+                            df_br = loader.fetch_broker_summary(selected_add_ticker)
+                            df_fr = loader.fetch_foreign_flow(selected_add_ticker)
+                            ticker_score_data = calculate_score(ind, df_br, df_fr)
+                            ticker_score_data["ticker"] = selected_add_ticker
+                            ticker_score_data["close_price"] = cl
+                            
+                if ticker_score_data:
+                    st.info(f"Sinyal Aktif: **{ticker_score_data['recommendation']}** | Skor Akhir: **{ticker_score_data['final_score']}** | Harga: **Rp {ticker_score_data.get('close_price', 0):,.0f}**")
+                    
+                    col_btn_add1, col_btn_add2 = st.columns(2)
+                    with col_btn_add1:
+                        if st.button("⭐ Add to Watchlist", use_container_width=True):
+                            added = storage.add_to_watchlist(
+                                st.session_state["username"],
+                                selected_add_ticker,
+                                ticker_score_data["recommendation"],
+                                ticker_score_data["final_score"],
+                                user_notes_add
+                            )
+                            if added:
+                                st.toast(f"✅ {selected_add_ticker} ditambahkan ke Watchlist!", icon="⭐")
+                                st.rerun()
+                    with col_btn_add2:
+                        with st.expander("💸 Mark as Real Buy Details", expanded=False):
+                            buy_date_input = st.date_input("Tanggal Beli:", date.today())
+                            buy_price_input = st.number_input("Harga Beli (Rp):", value=float(ticker_score_data.get('close_price', 0)), step=10.0)
+                            lot_qty_input = st.number_input("Jumlah Lot:", value=1, min_value=1, step=1)
+                            
+                            if st.button("💸 Catat Real Buy", use_container_width=True):
+                                saved_trade = storage.add_real_trade(
+                                    st.session_state["username"],
+                                    selected_add_ticker,
+                                    buy_date_input,
+                                    buy_price_input,
+                                    lot_qty_input,
+                                    ticker_score_data,
+                                    user_notes_add
+                                )
+                                if saved_trade:
+                                    st.toast(f"💸 Posisi Beli {selected_add_ticker} berhasil dicatat!", icon="✅")
+                                    if "portfolio_evaluated" in st.session_state:
+                                        del st.session_state["portfolio_evaluated"]
+                                    st.rerun()
+                                    
+        # 3. WATCHLIST TABLE
+        col_w1, col_w2 = st.columns([2, 1])
+        with col_w1:
+            st.subheader("⭐ Watchlist Saham Anda")
+            if not df_watch.empty:
+                st.dataframe(df_watch[["ticker", "added_date", "app_signal_when_added", "final_score_when_added", "notes"]].rename(columns={
+                    "ticker": "Ticker",
+                    "added_date": "Tanggal Ditambahkan",
+                    "app_signal_when_added": "Sinyal Saat Ditambah",
+                    "final_score_when_added": "Skor Saat Ditambah",
+                    "notes": "Catatan"
+                }), use_container_width=True, hide_index=True)
+            else:
+                st.info("Watchlist Anda kosong. Pilih saham di atas untuk memantau pergerakan harganya.")
+        with col_w2:
+            st.subheader("⚙️ Atur Watchlist")
+            if not df_watch.empty:
+                sel_w_ticker = st.selectbox("Pilih Saham Watchlist:", options=df_watch["ticker"].tolist(), key="sel_w_ticker")
+                if st.button("❌ Remove Watchlist", use_container_width=True):
+                    removed = storage.remove_from_watchlist(st.session_state["username"], sel_w_ticker)
+                    if removed:
+                        st.toast(f"Watchlist {sel_w_ticker} dihapus!", icon="🗑️")
+                        st.rerun()
+            else:
+                st.caption("Tidak ada saham watchlist aktif.")
+                
+        # 4. PORTFOLIO AND OPEN POSITIONS
+        df_open = df_eval[df_eval['status'] == 'Open Position'] if not df_eval.empty else pd.DataFrame()
+        df_closed = df_eval[df_eval['status'] == 'Closed Position'] if not df_eval.empty else pd.DataFrame()
+        
+        st.markdown('<div class="header-divider"></div>', unsafe_allow_html=True)
+        st.subheader("💼 Portofolio Terbuka (Open Positions)")
+        
+        if not df_open.empty:
+            df_open_disp = pd.DataFrame({
+                "ID": df_open["trade_id"],
+                "Ticker": df_open["ticker"],
+                "Tanggal Beli": df_open["buy_date"],
+                "Harga Beli": df_open["buy_price"].apply(lambda x: f"Rp {x:,.0f}"),
+                "Lot": df_open["lot_quantity"],
+                "Modal Awal": df_open["total_value"].apply(lambda x: f"Rp {x:,.0f}"),
+                "Harga Saat Ini": df_open["current_price"].apply(lambda x: f"Rp {x:,.0f}" if pd.notna(x) else "N/A"),
+                "Unrealized P/L": df_open["unrealized_profit_loss"].apply(lambda x: f"Rp {x:+,.0f}" if pd.notna(x) else "N/A"),
+                "Return (%)": df_open["return_percentage"].apply(lambda x: f"{x:+.2f}%" if pd.notna(x) else "N/A"),
+                "Sinyal Beli": df_open["app_signal_at_buy"],
+                "TP1 / TP2": df_open.apply(lambda r: f"Rp {r['tp1_at_buy']:,} / Rp {r['tp2_at_buy']:,}", axis=1),
+                "Stop Loss": df_open["sl_at_buy"].apply(lambda x: f"Rp {x:,.0f}"),
+                "Holding Days": df_open["holding_days"],
+                "Catatan": df_open["user_notes"]
+            })
+            st.dataframe(df_open_disp, use_container_width=True, hide_index=True)
+            
+            # --- MARK AS SELL / EXIT FORM ---
+            st.write("")
+            with st.expander("🚪 Catat Penjualan Saham / Exit Posisi Terbuka", expanded=False):
+                col_exit1, col_exit2 = st.columns(2)
+                with col_exit1:
+                    exit_trade_id = st.selectbox(
+                        "Pilih Posisi Terbuka:",
+                        options=df_open["trade_id"].tolist(),
+                        format_func=lambda x: f"{df_open[df_open['trade_id'] == x]['ticker'].values[0]} (Beli di Rp {df_open[df_open['trade_id'] == x]['buy_price'].values[0]:,})"
+                    )
+                    sell_date_input = st.date_input("Tanggal Jual:", date.today(), key="sell_date_inp")
+                    sell_price_input = st.number_input("Harga Jual (Rp):", min_value=1.0, step=10.0, key="sell_price_inp")
+                with col_exit2:
+                    exit_type_input = st.selectbox(
+                        "Tipe Exit / Penjualan:",
+                        options=["Take Profit 1 Hit", "Take Profit 2 Hit", "Stop Loss Hit", "Manual Sell", "Time-based Exit", "Signal Turned Avoid", "Other"]
+                    )
+                    sell_reason_input = st.text_input("Alasan Jual (Opsional):", "")
+                    
+                    if st.button("🚪 Simpan Exit Posisi", use_container_width=True):
+                        sold = storage.sell_real_trade(
+                            exit_trade_id,
+                            sell_date_input,
+                            sell_price_input,
+                            sell_reason_input,
+                            exit_type_input
+                        )
+                        if sold:
+                            st.toast("🚪 Penjualan posisi berhasil dicatat!", icon="✅")
+                            if "portfolio_evaluated" in st.session_state:
+                                del st.session_state["portfolio_evaluated"]
+                            st.rerun()
+        else:
+            st.info("Tidak ada posisi portofolio terbuka saat ini.")
+            
+        # 5. PERFORMANCE AND ACCURACY DASHBOARD SUMMARY
+        st.markdown('<div class="header-divider"></div>', unsafe_allow_html=True)
+        st.subheader("📈 Analisis Performa & Akurasi Sinyal")
+        
+        if not df_eval.empty:
+            total_real_buy = len(df_eval)
+            open_count = len(df_open)
+            closed_count = len(df_closed)
+            
+            winning_trades = df_eval[df_eval["return_percentage"] > 0]
+            losing_trades = df_eval[df_eval["return_percentage"] < 0]
+            
+            win_rate = (len(winning_trades) / closed_count * 100) if closed_count > 0 else 0.0
+            
+            total_realized_pl = df_closed["realized_profit_loss"].sum() if not df_closed.empty else 0.0
+            total_unrealized_pl = df_open["unrealized_profit_loss"].sum() if not df_open.empty else 0.0
+            
+            avg_return = df_eval["return_percentage"].mean()
+            median_return = df_eval["return_percentage"].median()
+            
+            best_trade_val = df_eval["return_percentage"].max()
+            best_trade_ticker = df_eval[df_eval["return_percentage"] == best_trade_val]["ticker"].values[0]
+            
+            worst_trade_val = df_eval["return_percentage"].min()
+            worst_trade_ticker = df_eval[df_eval["return_percentage"] == worst_trade_val]["ticker"].values[0]
+            
+            tp1_hits = int(df_eval["tp1_hit"].sum())
+            sl_hits = int(df_eval["sl_hit"].sum())
+            tp1_hit_rate = (tp1_hits / total_real_buy * 100) if total_real_buy > 0 else 0.0
+            sl_hit_rate = (sl_hits / total_real_buy * 100) if total_real_buy > 0 else 0.0
+            
+            # Render KPI
+            col_k1, col_k2, col_k3, col_k4 = st.columns(4)
+            with col_k1:
+                st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #60a5fa;"><div class="metric-grid-lbl">Total Real Buy</div><div class="metric-grid-val">{total_real_buy}</div><div style="font-size:0.75rem; color:#94a3b8;">{open_count} Open | {closed_count} Closed</div></div>', unsafe_allow_html=True)
+                st.write("")
+                st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #10b981;"><div class="metric-grid-lbl">Total Realized P/L</div><div class="metric-grid-val" style="color:{"#10b981" if total_realized_pl >= 0 else "#ef4444"}; font-size:1.25rem;">Rp {total_realized_pl:+,.0f}</div></div>', unsafe_allow_html=True)
+            with col_k2:
+                win_color = "#10b981" if win_rate >= 50 else "#f59e0b"
+                st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid {win_color};"><div class="metric-grid-lbl">Win Rate (Closed)</div><div class="metric-grid-val" style="color:{win_color};">{win_rate:.1f}%</div><div style="font-size:0.75rem; color:#94a3b8;">{len(winning_trades)} Win | {len(losing_trades)} Loss</div></div>', unsafe_allow_html=True)
+                st.write("")
+                st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #a78bfa;"><div class="metric-grid-lbl">Total Unrealized P/L</div><div class="metric-grid-val" style="color:{"#10b981" if total_unrealized_pl >= 0 else "#ef4444"}; font-size:1.25rem;">Rp {total_unrealized_pl:+,.0f}</div></div>', unsafe_allow_html=True)
+            with col_k3:
+                ret_color = "#10b981" if avg_return >= 0 else "#ef4444"
+                st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid {ret_color};"><div class="metric-grid-lbl">Average Return</div><div class="metric-grid-val" style="color:{ret_color};">{avg_return:+.2f}%</div><div style="font-size:0.75rem; color:#94a3b8;">Median: {median_return:+.1f}%</div></div>', unsafe_allow_html=True)
+                st.write("")
+                st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #34d399;"><div class="metric-grid-lbl">TP1 Hit Rate</div><div class="metric-grid-val" style="color:#34d399;">{tp1_hit_rate:.1f}%</div><div style="font-size:0.75rem; color:#94a3b8;">{tp1_hits} dari {total_real_buy} kali</div></div>', unsafe_allow_html=True)
+            with col_k4:
+                st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #34d399;"><div class="metric-grid-lbl">Best Trade</div><div class="metric-grid-val" style="color:#10b981; font-size:1.2rem;">{best_trade_ticker} ({best_trade_val:+.1f}%)</div></div>', unsafe_allow_html=True)
+                st.write("")
+                st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #ef4444;"><div class="metric-grid-lbl">SL Hit Rate</div><div class="metric-grid-val" style="color:#ef4444;">{sl_hit_rate:.1f}%</div><div style="font-size:0.75rem; color:#94a3b8;">{sl_hits} dari {total_real_buy} kali</div></div>', unsafe_allow_html=True)
+                
+            st.write("")
+            
+            # --- CHARTS AND STATS GRID ---
+            col_chart1, col_chart2 = st.columns(2)
+            with col_chart1:
+                st.markdown("##### 📈 Kurva Ekuitas Kumulatif (Equity Curve)")
+                if not df_closed.empty:
+                    df_closed_sorted = df_closed.sort_values("sell_date")
+                    df_closed_sorted["cum_return"] = df_closed_sorted["return_percentage"].cumsum()
+                    
+                    fig_eq = go.Figure()
+                    fig_eq.add_trace(go.Scatter(
+                        x=df_closed_sorted["sell_date"],
+                        y=df_closed_sorted["cum_return"],
+                        mode='lines+markers',
+                        line=dict(color='#10b981', width=3),
+                        marker=dict(size=8, color='#34d399'),
+                        fill='tozeroy',
+                        fillcolor='rgba(16, 185, 129, 0.05)',
+                        name="Return Kumulatif (%)"
+                    ))
+                    fig_eq.update_layout(
+                        template="plotly_dark",
+                        margin=dict(l=20, r=20, t=10, b=10),
+                        height=220,
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)'
+                    )
+                    st.plotly_chart(fig_eq, use_container_width=True)
+                else:
+                    st.info("Kurva ekuitas akan muncul setelah ada minimal satu transaksi yang ditutup (Closed Position).")
+                    
+                # Return by Signal Type
+                st.markdown("##### 🚥 Rata-rata Return berdasarkan Sinyal Beli")
+                ret_by_sig = df_eval.groupby("app_signal_at_buy")["return_percentage"].mean().reset_index()
+                fig_sig = go.Figure(go.Bar(
+                    x=ret_by_sig["app_signal_at_buy"],
+                    y=ret_by_sig["return_percentage"],
+                    marker_color=['#10b981' if x == "BUY" else ('#f59e0b' if 'HOLD' in x else '#ef4444') for x in ret_by_sig["app_signal_at_buy"]]
+                ))
+                fig_sig.update_layout(
+                    template="plotly_dark",
+                    margin=dict(l=20, r=20, t=10, b=10),
+                    height=200,
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)'
+                )
+                st.plotly_chart(fig_sig, use_container_width=True)
+                
+            with col_chart2:
+                # Return by ticker
+                st.markdown("##### 📊 Return per Ticker Saham (%)")
+                ret_by_ticker = df_eval.groupby("ticker")["return_percentage"].mean().reset_index()
+                fig_tick = go.Figure(go.Bar(
+                    x=ret_by_ticker["ticker"],
+                    y=ret_by_ticker["return_percentage"],
+                    marker_color='#60a5fa'
+                ))
+                fig_tick.update_layout(
+                    template="plotly_dark",
+                    margin=dict(l=20, r=20, t=10, b=10),
+                    height=220,
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)'
+                )
+                st.plotly_chart(fig_tick, use_container_width=True)
+                
+                # Return by Score Bucket
+                st.markdown("##### 🔢 Rata-rata Return berdasarkan Rentang Skor Final")
+                def get_bucket(score):
+                    if score >= 90: return "90-100"
+                    elif score >= 80: return "80-89"
+                    elif score >= 70: return "70-79"
+                    elif score >= 60: return "60-69"
+                    else: return "<60"
+                df_eval["score_bucket"] = df_eval["final_score_at_buy"].apply(get_bucket)
+                ret_by_bucket = df_eval.groupby("score_bucket")["return_percentage"].mean().reindex(["90-100", "80-89", "70-79", "60-69", "<60"]).reset_index().dropna()
+                
+                fig_buck = go.Figure(go.Bar(
+                    x=ret_by_bucket["score_bucket"],
+                    y=ret_by_bucket["return_percentage"],
+                    marker_color='#a78bfa'
+                ))
+                fig_buck.update_layout(
+                    template="plotly_dark",
+                    margin=dict(l=20, r=20, t=10, b=10),
+                    height=200,
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    plot_bgcolor='rgba(0,0,0,0)'
+                )
+                st.plotly_chart(fig_buck, use_container_width=True)
+                
+            # --- EVALUATION AGAINST APP PREDICTION ---
+            st.markdown('<div class="header-divider"></div>', unsafe_allow_html=True)
+            st.subheader("🎯 Akurasi Prediksi & Evaluasi Rekomendasi")
+            
+            pred_summary = df_eval.groupby("prediction_result").size().reset_index(name="count")
+            col_acc1, col_acc2 = st.columns([1, 2])
+            with col_acc1:
+                fig_pie = go.Figure(go.Pie(
+                    labels=pred_summary["prediction_result"],
+                    values=pred_summary["count"],
+                    hole=0.4,
+                    marker=dict(colors=['#10b981' if x == "Correct" else ('#ef4444' if x == "Wrong" else '#94a3b8') for x in pred_summary["prediction_result"]])
+                ))
+                fig_pie.update_layout(
+                    template="plotly_dark",
+                    margin=dict(l=10, r=10, t=10, b=10),
+                    height=180,
+                    paper_bgcolor='rgba(0,0,0,0)',
+                    legend=dict(orientation="h", yanchor="bottom", y=-0.2)
+                )
+                st.plotly_chart(fig_pie, use_container_width=True)
+            with col_acc2:
+                for _, row in df_eval.iterrows():
+                    res_class = row["prediction_result"]
+                    color_tag = "🟢" if res_class == "Correct" else ("🔴" if res_class == "Wrong" else "⚪")
+                    st.markdown(f"{color_tag} **{row['ticker']}** (Beli Saat Sinyal `{row['app_signal_at_buy']}`): {row['prediction_result_detail']}")
+            
+            # --- TRADE JOURNAL SECTION ---
+            st.markdown('<div class="header-divider"></div>', unsafe_allow_html=True)
+            st.subheader("📓 Jurnal Transaksi (Trade Journal)")
+            
+            col_f_j1, col_f_j2, col_f_j3 = st.columns(3)
+            with col_f_j1:
+                j_ticker_filter = st.multiselect("Filter Ticker Saham:", options=df_eval["ticker"].unique())
+            with col_f_j2:
+                j_status_filter = st.selectbox("Filter Status Posisi:", options=["Semua", "Open Position", "Closed Position"])
+            with col_f_j3:
+                j_signal_filter = st.selectbox("Filter Sinyal Saat Beli:", options=["Semua", "BUY", "HOLD / WATCH", "AVOID"])
+                
+            df_j_filtered = df_eval.copy()
+            if j_ticker_filter:
+                df_j_filtered = df_j_filtered[df_j_filtered["ticker"].isin(j_ticker_filter)]
+            if j_status_filter != "Semua":
+                df_j_filtered = df_j_filtered[df_j_filtered["status"] == j_status_filter]
+            if j_signal_filter != "Semua":
+                df_j_filtered = df_j_filtered[df_j_filtered["app_signal_at_buy"] == j_signal_filter]
+                
+            df_journal_table = pd.DataFrame({
+                "Ticker": df_j_filtered["ticker"],
+                "Tgl Beli": df_j_filtered["buy_date"],
+                "Harga Beli": df_j_filtered["buy_price"].apply(lambda x: f"Rp {x:,.0f}"),
+                "Current Price": df_j_filtered["current_price"].apply(lambda x: f"Rp {x:,.0f}" if pd.notna(x) else "N/A"),
+                "Tgl Jual": df_j_filtered["sell_date"].apply(lambda x: str(x) if pd.notna(x) else "N/A"),
+                "Harga Jual": df_j_filtered["sell_price"].apply(lambda x: f"Rp {x:,.0f}" if pd.notna(x) else "N/A"),
+                "Status": df_j_filtered["status"],
+                "Sinyal Beli": df_j_filtered["app_signal_at_buy"],
+                "Skor Beli": df_j_filtered["final_score_at_buy"],
+                "Return (%)": df_j_filtered["return_percentage"].apply(lambda x: f"{x:+.2f}%" if pd.notna(x) else "N/A"),
+                "Realized P/L": df_j_filtered["realized_profit_loss"].apply(lambda x: f"Rp {x:+,.0f}" if pd.notna(x) else "N/A"),
+                "Unrealized P/L": df_j_filtered["unrealized_profit_loss"].apply(lambda x: f"Rp {x:+,.0f}" if pd.notna(x) else "N/A"),
+                "Holding Days": df_j_filtered["holding_days"],
+                "Exit Type": df_j_filtered["exit_type"].apply(lambda x: str(x) if pd.notna(x) else "N/A"),
+                "Catatan": df_j_filtered["user_notes"]
+            }).reset_index(drop=True)
+            
+            st.dataframe(df_journal_table, use_container_width=True, hide_index=True)
+            
+            # --- EXPORT BUTTONS ---
+            col_exp1, col_exp2, col_exp3 = st.columns(3)
+            with col_exp1:
+                st.download_button(
+                    label="📥 Export Jurnal ke CSV",
+                    data=df_eval.to_csv(index=False),
+                    file_name="trade_journal_export.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+            with col_exp2:
+                acc_summary = pd.DataFrame([{
+                    "Total Real Buy": total_real_buy,
+                    "Open Positions": open_count,
+                    "Closed Positions": closed_count,
+                    "Win Rate (%)": win_rate,
+                    "Average Return (%)": avg_return,
+                    "TP1 Hit Rate (%)": tp1_hit_rate,
+                    "SL Hit Rate (%)": sl_hit_rate
+                }])
+                st.download_button(
+                    label="📥 Export Akurasi ke CSV",
+                    data=acc_summary.to_csv(index=False),
+                    file_name="accuracy_summary.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+            with col_exp3:
+                st.download_button(
+                    label="📥 Export Performa Sinyal ke CSV",
+                    data=ret_by_sig.to_csv(index=False),
+                    file_name="performance_by_signal.csv",
+                    mime="text/csv",
+                    use_container_width=True
+                )
+        else:
+            st.info("Portofolio transaksi riil Anda masih kosong. Silakan catat transaksi pembelian pertama Anda di atas!")
+
     if is_admin:
         with tab_activities:
             st.subheader("🔐 Audit Jejak Aktivitas Pengguna (Neon DB Sync)")
