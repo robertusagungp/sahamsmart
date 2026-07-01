@@ -11,6 +11,7 @@ from src.indicators import calculate_technical_indicators
 from src.scoring import calculate_score
 from src.storage import AnalysisStorage
 from src.stock_list import get_all_idx_tickers, get_idx_stocks_df
+from src.telegram_bot import send_telegram_alert
 
 # Set page configuration with a modern title and wide layout
 st.set_page_config(
@@ -335,6 +336,23 @@ with st.sidebar:
     else:
         st.info("Koneksi Database: Lokal (SQLite/CSV)")
 
+    # Telegram Bot configuration expander in sidebar
+    with st.expander("🔔 Konfigurasi Telegram Bot", expanded=False):
+        st.write("Push alert sinyal saham langsung ke grup/channel Telegram Anda.")
+        
+        # Pull defaults from st.secrets if configured
+        def_tg_token = ""
+        def_tg_chat = ""
+        try:
+            def_tg_token = st.secrets.get("TELEGRAM_BOT_TOKEN", "")
+            def_tg_chat = st.secrets.get("TELEGRAM_CHAT_ID", "")
+        except Exception:
+            pass
+            
+        tg_bot_token = st.text_input("Bot Token", value=def_tg_token, type="password", help="API Token Bot Telegram Anda")
+        tg_chat_id = st.text_input("Group/Chat ID", value=def_tg_chat, placeholder="Contoh: -100123456789", help="ID Grup/Channel dengan tanda (-) di depan")
+        auto_send_buy = st.checkbox("Auto-Send Sinyal BUY", value=False, help="Kirim otomatis ke Telegram jika screening mendeteksi sinyal BUY")
+
     run_analysis = st.button("🔄 Jalankan & Simpan Analisis Baru", use_container_width=True)
 
 # ----------------- CONTROLLER / STOCK PROCESSING PIPELINE -----------------
@@ -473,6 +491,17 @@ if should_trigger:
                 st.session_state["saved_status"] = "✅ Analisis berhasil disimpan ke Database!"
             else:
                 st.session_state["saved_status"] = "⚠️ Analisis selesai tetapi gagal sinkronisasi database."
+                
+            # Auto-send BUY alerts to Telegram
+            if auto_send_buy and tg_bot_token and tg_chat_id:
+                sent_count = 0
+                for r in all_results:
+                    if r["recommendation"] == "BUY":
+                        success, msg = send_telegram_alert(tg_bot_token, tg_chat_id, r)
+                        if success:
+                            sent_count += 1
+                if sent_count > 0:
+                    st.toast(f"🔔 Berhasil mengirim {sent_count} alert sinyal BUY ke Telegram!", icon="🚀")
         else:
             st.error("Tidak ada saham yang berhasil dianalisis. Harap pastikan format ticker benar (contoh: BBCA.JK atau BBCA).")
 
@@ -750,6 +779,18 @@ if "results" in st.session_state and st.session_state["results"]:
                 </span>
             </div>
             """, unsafe_allow_html=True)
+            
+            # Manual Telegram push button
+            if tg_bot_token and tg_chat_id:
+                if st.button("📤 Kirim Sinyal Ke Telegram", key="btn_send_tg", use_container_width=True):
+                    with st.spinner("Mengirim alert telegram..."):
+                        success, msg = send_telegram_alert(tg_bot_token, tg_chat_id, stock_details)
+                        if success:
+                            st.toast("✅ Sinyal dikirim ke Telegram!", icon="🔔")
+                            st.success(msg)
+                        else:
+                            st.error(msg)
+                            
             st.markdown("</div>", unsafe_allow_html=True)
             
             # Combined Grid Score Dashboard
