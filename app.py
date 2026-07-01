@@ -985,6 +985,12 @@ if "results" in st.session_state and st.session_state["results"]:
                             ticker_score_data["close_price"] = cl
                             
                 if ticker_score_data:
+                    # Normalize keys to support both list record ("score") and raw calculator ("final_score")
+                    if "score" in ticker_score_data and "final_score" not in ticker_score_data:
+                        ticker_score_data["final_score"] = ticker_score_data["score"]
+                    elif "final_score" in ticker_score_data and "score" not in ticker_score_data:
+                        ticker_score_data["score"] = ticker_score_data["final_score"]
+                        
                     st.info(f"Sinyal Aktif: **{ticker_score_data['recommendation']}** | Skor Akhir: **{ticker_score_data['final_score']}** | Harga: **Rp {ticker_score_data.get('close_price', 0):,.0f}**")
                     
                     col_btn_add1, col_btn_add2 = st.columns(2)

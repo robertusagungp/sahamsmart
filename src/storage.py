@@ -513,7 +513,7 @@ class AnalysisStorage:
                     "app_signal": score_data.get("recommendation", "BUY"),
                     "tech_score": score_data.get("technical_score", 0),
                     "flow_score": score_data.get("flow_score", 0),
-                    "final_score": score_data.get("final_score", 0),
+                    "final_score": score_data.get("final_score", score_data.get("score", 0)),
                     "entry_area": score_data.get("entry_area", ""),
                     "tp1": float(score_data.get("tp1", 0)) if isinstance(score_data.get("tp1"), (int, float)) else 0.0,
                     "tp2": float(score_data.get("tp2", 0)) if isinstance(score_data.get("tp2"), (int, float)) else 0.0,
