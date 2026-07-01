@@ -336,22 +336,26 @@ with st.sidebar:
     else:
         st.info("Koneksi Database: Lokal (SQLite/CSV)")
 
-    # Telegram Bot configuration expander in sidebar
-    with st.expander("🔔 Konfigurasi Telegram Bot", expanded=False):
-        st.write("Push alert sinyal saham langsung ke grup/channel Telegram Anda.")
+    # Initialize Telegram variables with defaults to avoid NameError for non-admins
+    tg_bot_token = ""
+    tg_chat_id = ""
+    auto_send_buy = False
+    
+    try:
+        tg_bot_token = st.secrets.get("TELEGRAM_BOT_TOKEN", "")
+        tg_chat_id = st.secrets.get("TELEGRAM_CHAT_ID", "")
+    except Exception:
+        pass
         
-        # Pull defaults from st.secrets if configured
-        def_tg_token = ""
-        def_tg_chat = ""
-        try:
-            def_tg_token = st.secrets.get("TELEGRAM_BOT_TOKEN", "")
-            def_tg_chat = st.secrets.get("TELEGRAM_CHAT_ID", "")
-        except Exception:
-            pass
-            
-        tg_bot_token = st.text_input("Bot Token", value=def_tg_token, type="password", help="API Token Bot Telegram Anda")
-        tg_chat_id = st.text_input("Group/Chat ID", value=def_tg_chat, placeholder="Contoh: -100123456789", help="ID Grup/Channel dengan tanda (-) di depan")
-        auto_send_buy = st.checkbox("Auto-Send Sinyal BUY", value=False, help="Kirim otomatis ke Telegram jika screening mendeteksi sinyal BUY")
+    is_admin = st.session_state["username"] == "fra"
+    
+    if is_admin:
+        # Telegram Bot configuration expander in sidebar (Admin Only)
+        with st.expander("🔔 Konfigurasi Telegram Bot", expanded=False):
+            st.write("Push alert sinyal saham langsung ke grup/channel Telegram Anda.")
+            tg_bot_token = st.text_input("Bot Token", value=tg_bot_token, type="password", help="API Token Bot Telegram Anda")
+            tg_chat_id = st.text_input("Group/Chat ID", value=tg_chat_id, placeholder="Contoh: -100123456789", help="ID Grup/Channel dengan tanda (-) di depan")
+            auto_send_buy = st.checkbox("Auto-Send Sinyal BUY", value=False, help="Kirim otomatis ke Telegram jika screening mendeteksi sinyal BUY")
 
     run_analysis = st.button("🔄 Jalankan & Simpan Analisis Baru", use_container_width=True)
 
@@ -514,7 +518,12 @@ if "results" in st.session_state and st.session_state["results"]:
     if "saved_status" in st.session_state:
         st.caption(st.session_state["saved_status"])
         
-    tab_screener, tab_history, tab_activities = st.tabs(["📊 Screener & Ranking", "📜 Histori Rekomendasi", "🔐 Audit Aktivitas User (Neon DB)"])
+    is_admin = st.session_state["username"] == "fra"
+    
+    if is_admin:
+        tab_screener, tab_history, tab_activities = st.tabs(["📊 Screener & Ranking", "📜 Histori Rekomendasi", "🔐 Audit Aktivitas User (Neon DB)"])
+    else:
+        tab_screener, tab_history = st.tabs(["📊 Screener & Ranking", "📜 Histori Rekomendasi"])
     
     with tab_screener:
         # Highlights Metrics Layout
@@ -780,8 +789,8 @@ if "results" in st.session_state and st.session_state["results"]:
             </div>
             """, unsafe_allow_html=True)
             
-            # Manual Telegram push button
-            if tg_bot_token and tg_chat_id:
+            # Manual Telegram push button (Admin Only)
+            if is_admin and tg_bot_token and tg_chat_id:
                 if st.button("📤 Kirim Sinyal Ke Telegram", key="btn_send_tg", use_container_width=True):
                     with st.spinner("Mengirim alert telegram..."):
                         success, msg = send_telegram_alert(tg_bot_token, tg_chat_id, stock_details)
@@ -910,25 +919,26 @@ if "results" in st.session_state and st.session_state["results"]:
         except Exception as e:
             st.error(f"Gagal memuat log data dari database: {str(e)}")
             
-    with tab_activities:
-        st.subheader("🔐 Audit Jejak Aktivitas Pengguna (Neon DB Sync)")
-        st.write("Semua aktivitas pengguna seperti masuk akun, melihat grafik saham spesifik, dan melakukan screening tersimpan di Neon DB untuk monitoring.")
-        
-        try:
-            df_act = storage.load_activity_logs(limit=150)
-            if not df_act.empty:
-                df_act['timestamp'] = pd.to_datetime(df_act['timestamp']).dt.strftime('%Y-%m-%d %H:%M:%S')
-                df_act = df_act.rename(columns={
-                    'username': 'Username',
-                    'action': 'Aktivitas / Tindakan',
-                    'ticker': 'Ticker Terkait',
-                    'timestamp': 'Waktu (UTC)'
-                })
-                st.dataframe(df_act, use_container_width=True, hide_index=True)
-            else:
-                st.info("Log aktivitas masih kosong.")
-        except Exception as e:
-            st.error(f"Gagal mengambil log aktivitas pengguna: {str(e)}")
+    if is_admin:
+        with tab_activities:
+            st.subheader("🔐 Audit Jejak Aktivitas Pengguna (Neon DB Sync)")
+            st.write("Semua aktivitas pengguna seperti masuk akun, melihat grafik saham spesifik, dan melakukan screening tersimpan di Neon DB untuk monitoring.")
+            
+            try:
+                df_act = storage.load_activity_logs(limit=150)
+                if not df_act.empty:
+                    df_act['timestamp'] = pd.to_datetime(df_act['timestamp']).dt.strftime('%Y-%m-%d %H:%M:%S')
+                    df_act = df_act.rename(columns={
+                        'username': 'Username',
+                        'action': 'Aktivitas / Tindakan',
+                        'ticker': 'Ticker Terkait',
+                        'timestamp': 'Waktu (UTC)'
+                    })
+                    st.dataframe(df_act, use_container_width=True, hide_index=True)
+                else:
+                    st.info("Log aktivitas masih kosong.")
+            except Exception as e:
+                st.error(f"Gagal mengambil log aktivitas pengguna: {str(e)}")
 
 # Bottom Disclaimer Page Footer
 st.markdown('<div class="header-divider" style="margin-top:40px;"></div>', unsafe_allow_html=True)
