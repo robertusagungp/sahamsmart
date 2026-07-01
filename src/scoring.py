@@ -327,13 +327,13 @@ def generate_trading_signal(
     )
     
     if is_buy_candidate:
-        signal = "BUY"
+        signal = "Watchlist Prioritas"
         reasons.append("Skor kumulatif tinggi dengan tren MA20 & MA50 solid dan momentum positif.")
     elif is_avoid_candidate:
-        signal = "AVOID"
+        signal = "Keluar dari Watchlist"
         reasons.append("Kondisi tren melemah (di bawah MA) atau skor kumulatif di bawah batas aman.")
     else:
-        signal = "HOLD / WATCH"
+        signal = "Wait and See"
         reasons.append("Saham berada dalam fase konsolidasi, sideways, atau rasio reward belum ideal.")
 
     # ----------------- 2. EXTENDED SETUP & DEMOTIONS -----------------
@@ -351,11 +351,11 @@ def generate_trading_signal(
             is_extended = True
             risks_notes.append("Harga sudah terlalu jauh dari MA20 (>8%)")
             
-    if signal == "BUY":
+    if signal == "Watchlist Prioritas":
         if is_extended:
-            signal = "HOLD / WATCH"
+            signal = "Wait and See"
             reasons.clear()
-            reasons.append("Sinyal diturunkan ke HOLD/WATCH karena harga sudah terlalu extended dari MA20 (>8%).")
+            reasons.append("Sinyal diturunkan ke Wait and See karena harga sudah terlalu extended dari MA20 (>8%).")
         else:
             # Calculate Entry Area
             entry_low = round(max(ma20, close * 0.97))
@@ -386,18 +386,18 @@ def generate_trading_signal(
             
             if risk <= 0 or reward <= 0:
                 rr_ratio = "Invalid setup"
-                signal = "HOLD / WATCH"
+                signal = "Wait and See"
                 reasons.clear()
-                reasons.append("Sinyal diturunkan ke HOLD/WATCH karena rasio Stop Loss / Target Profit tidak valid.")
+                reasons.append("Sinyal diturunkan ke Wait and See karena rasio Stop Loss / Target Profit tidak valid.")
             else:
                 rr = reward / risk
                 rr_ratio = f"{rr:.2f}"
                 
                 # BUY is only valid if Risk Reward Ratio >= 1.5
                 if rr < 1.5:
-                    signal = "HOLD / WATCH"
+                    signal = "Wait and See"
                     reasons.clear()
-                    reasons.append(f"Sinyal diturunkan ke HOLD/WATCH karena Risk-Reward Ratio tidak ideal ({rr:.2f} < 1.5).")
+                    reasons.append(f"Sinyal diturunkan ke Wait and See karena Risk-Reward Ratio tidak ideal ({rr:.2f} < 1.5).")
                     entry_area = f"Watch area support dekat {round(support_20d) if support_20d else 'MA20'}"
                     tp1 = round(resistance_20d) if resistance_20d else "N/A"
                     tp2 = round(resistance_50d) if resistance_50d else "N/A"
@@ -406,7 +406,7 @@ def generate_trading_signal(
                 else:
                     entry_area = f"Rp {entry_low:,} - Rp {entry_high:,}"
                     
-    if signal == "HOLD / WATCH":
+    if signal == "Wait and See":
         # Generate passive watch setup
         entry_area = f"Watch area support dekat {round(support_20d) if support_20d else 'MA20'}"
         tp1 = round(resistance_20d) if resistance_20d else "N/A"
@@ -414,7 +414,7 @@ def generate_trading_signal(
         sl = round(min(support_20d, ma50)) if (support_20d and ma50) else "N/A"
         rr_ratio = "N/A"
         
-    elif signal == "AVOID":
+    elif signal == "Keluar dari Watchlist":
         entry_area = "No entry recommended"
         tp1 = "N/A"
         tp2 = "N/A"

@@ -77,7 +77,13 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
     realized_pl = float(trade_data.get("realized_profit_loss", 0))
     holding_days = int(trade_data.get("holding_days", 0))
     exit_type = str(trade_data.get("exit_type", "Manual Sell"))
-    app_signal = str(trade_data.get("app_signal_at_buy", "BUY"))
+    raw_signal = str(trade_data.get("app_signal_at_buy", "BUY"))
+    if raw_signal in ["Watchlist Prioritas", "BUY"]:
+        app_signal = "Watchlist Prioritas"
+    elif raw_signal in ["Wait and See", "HOLD", "WATCH", "HOLD / WATCH"]:
+        app_signal = "Wait and See"
+    else:
+        app_signal = "Keluar dari Watchlist"
     
     buy_date = str(trade_data.get("buy_date", "N/A"))
     sell_date = str(trade_data.get("sell_date", "N/A"))

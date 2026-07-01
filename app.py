@@ -229,7 +229,7 @@ if not st.session_state["logged_in"]:
             ### Benefit Akun Premium:
             - 📈 **Screener Saham Tak Terbatas**: Akses seluruh daftar saham di Bursa Efek Indonesia (IDX).
             - 🎯 **Advanced scoring system**: Kalkulasi momentum, volume trend, RSI, dan MA20/MA50.
-            - 🛠️ **Dashboard detail & risiko**: Penjelasan alasan BUY / WATCH / AVOID beserta faktor risikonya.
+            - 🛠️ **Dashboard detail & risiko**: Penjelasan alasan status Watchlist Prioritas / Wait and See / Keluar dari Watchlist beserta faktor risikonya.
             - 🗃️ **Sinkronisasi Database Awan**: Histori log tersinkronisasi di Neon DB (PostgreSQL).
             - 🔐 **Log Aktivitas Aman**: Seluruh tindakan terekam aman untuk audit analisis Anda.
             """)
@@ -241,7 +241,8 @@ if not st.session_state["logged_in"]:
 col_header_title, col_header_user = st.columns([3, 1])
 with col_header_title:
     st.title("👑 Smart Saham Premium Dashboard")
-    st.markdown("##### *Sistem Screening & Analisis Keputusan Saham Indonesia Premium*")
+    st.markdown("##### *AI Stock Screening & Risk Monitoring Platform Bursa Efek Indonesia*")
+    st.caption("⚠️ **Pemberitahuan Hukum (OJK)**: Aplikasi ini bukan platform pemberi rekomendasi investasi final untuk beli/jual saham, melainkan platform penyaring data (*AI Stock Screening*) & pemantauan risiko (*Risk Monitoring*) untuk membantu riset mandiri Anda.")
 with col_header_user:
     st.write("")
     st.markdown(f"👤 Akun: **{st.session_state['username'].upper()}** `[Premium Active]`")
@@ -368,7 +369,7 @@ with st.sidebar:
             st.write("Push alert sinyal saham langsung ke grup/channel Telegram Anda.")
             tg_bot_token = st.text_input("Bot Token", value=tg_bot_token, type="password", help="API Token Bot Telegram Anda")
             tg_chat_id = st.text_input("Group/Chat ID", value=tg_chat_id, placeholder="Contoh: -100123456789", help="ID Grup/Channel dengan tanda (-) di depan")
-            auto_send_buy = st.checkbox("Auto-Send Sinyal BUY", value=False, help="Kirim otomatis ke Telegram jika screening mendeteksi sinyal BUY")
+            auto_send_buy = st.checkbox("Auto-Send Sinyal Watchlist Prioritas", value=False, help="Kirim otomatis ke Telegram jika screening mendeteksi sinyal Watchlist Prioritas")
 
     run_analysis = st.button("🔄 Jalankan & Simpan Analisis Baru", use_container_width=True)
 
@@ -509,16 +510,16 @@ if should_trigger:
             else:
                 st.session_state["saved_status"] = "⚠️ Analisis selesai tetapi gagal sinkronisasi database."
                 
-            # Auto-send BUY alerts to Telegram
+            # Auto-send Watchlist Prioritas alerts to Telegram
             if auto_send_buy and tg_bot_token and tg_chat_id:
                 sent_count = 0
                 for r in all_results:
-                    if r["recommendation"] == "BUY":
+                    if r["recommendation"] in ["BUY", "Watchlist Prioritas"]:
                         success, msg = send_telegram_alert(tg_bot_token, tg_chat_id, r)
                         if success:
                             sent_count += 1
                 if sent_count > 0:
-                    st.toast(f"🔔 Berhasil mengirim {sent_count} alert sinyal BUY ke Telegram!", icon="🚀")
+                    st.toast(f"🔔 Berhasil mengirim {sent_count} alert sinyal Watchlist Prioritas ke Telegram!", icon="🚀")
         else:
             st.error("Tidak ada saham yang berhasil dianalisis. Harap pastikan format ticker benar (contoh: BBCA.JK atau BBCA).")
 
@@ -540,19 +541,19 @@ if "results" in st.session_state and st.session_state["results"]:
     
     with tab_screener:
         # Highlights Metrics Layout
-        buy_count = sum(1 for r in results if r["recommendation"] == "BUY")
-        watch_count = sum(1 for r in results if r["recommendation"] == "HOLD / WATCH")
-        avoid_count = sum(1 for r in results if r["recommendation"] == "AVOID")
+        buy_count = sum(1 for r in results if r["recommendation"] in ["BUY", "Watchlist Prioritas"])
+        watch_count = sum(1 for r in results if r["recommendation"] in ["HOLD / WATCH", "Wait and See"])
+        avoid_count = sum(1 for r in results if r["recommendation"] in ["AVOID", "Keluar dari Watchlist"])
         
         col_m1, col_m2, col_m3, col_m4 = st.columns(4)
         with col_m1:
             st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #3b82f6;"><div class="metric-grid-lbl">Saham Di-Screen</div><div class="metric-grid-val" style="color:#3b82f6;">{len(results)}</div></div>', unsafe_allow_html=True)
         with col_m2:
-            st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #10b981;"><div class="metric-grid-lbl">Sinyal BUY</div><div class="metric-grid-val" style="color:#10b981;">{buy_count}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #10b981;"><div class="metric-grid-lbl">Watchlist Prioritas</div><div class="metric-grid-val" style="color:#10b981;">{buy_count}</div></div>', unsafe_allow_html=True)
         with col_m3:
-            st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #f59e0b;"><div class="metric-grid-lbl">Sinyal HOLD / WATCH</div><div class="metric-grid-val" style="color:#f59e0b;">{watch_count}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #f59e0b;"><div class="metric-grid-lbl">Wait and See</div><div class="metric-grid-val" style="color:#f59e0b;">{watch_count}</div></div>', unsafe_allow_html=True)
         with col_m4:
-            st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #ef4444;"><div class="metric-grid-lbl">Sinyal AVOID</div><div class="metric-grid-val" style="color:#ef4444;">{avoid_count}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #ef4444;"><div class="metric-grid-lbl">Keluar dari Watchlist</div><div class="metric-grid-val" style="color:#ef4444;">{avoid_count}</div></div>', unsafe_allow_html=True)
             
         st.write("")
         col_tbl_title, col_tbl_filter = st.columns([2, 1])
@@ -561,10 +562,18 @@ if "results" in st.session_state and st.session_state["results"]:
         with col_tbl_filter:
             signal_filter = st.multiselect(
                 "Filter Sinyal:",
-                options=["BUY", "HOLD / WATCH", "AVOID"],
-                default=["BUY", "HOLD / WATCH", "AVOID"]
+                options=["Watchlist Prioritas", "Wait and See", "Keluar dari Watchlist"],
+                default=["Watchlist Prioritas", "Wait and See", "Keluar dari Watchlist"]
             )
         
+        # Helper to map signal to regulatory-friendly Indonesian terms
+        def clean_signal_name(sig):
+            if sig in ["Watchlist Prioritas", "BUY"]:
+                return "Watchlist Prioritas"
+            elif sig in ["Wait and See", "HOLD / WATCH", "HOLD", "WATCH"]:
+                return "Wait and See"
+            return "Keluar dari Watchlist"
+
         table_data = []
         for r in results:
             fd = r["flow_data"]
@@ -580,7 +589,7 @@ if "results" in st.session_state and st.session_state["results"]:
                 "Technical Score": r["technical_score"],
                 "Flow Score": r["flow_score"] if r["flow_score"] is not None else "N/A",
                 "Final Score": r["score"],
-                "Signal": r["recommendation"],
+                "Signal": clean_signal_name(r["recommendation"]),
                 "Entry Area": r["entry_area"],
                 "TP1": f"Rp {r['tp1']:,}" if isinstance(r['tp1'], (int, float)) else r['tp1'],
                 "TP2": f"Rp {r['tp2']:,}" if isinstance(r['tp2'], (int, float)) else r['tp2'],
@@ -597,11 +606,11 @@ if "results" in st.session_state and st.session_state["results"]:
         df_table_filtered = df_table[df_table['Signal'].isin(signal_filter)].reset_index(drop=True)
         
         def style_recommendation(val):
-            if val == "BUY":
+            if val == "Watchlist Prioritas":
                 return 'background-color: rgba(16, 185, 129, 0.25); color: #10b981; font-weight: bold; border: 1px solid #10b981;'
-            elif val == "HOLD / WATCH":
+            elif val == "Wait and See":
                 return 'background-color: rgba(245, 158, 11, 0.25); color: #f59e0b; font-weight: bold; border: 1px solid #f59e0b;'
-            elif val == "AVOID":
+            elif val == "Keluar dari Watchlist":
                 return 'background-color: rgba(239, 68, 68, 0.25); color: #ef4444; font-weight: bold; border: 1px solid #ef4444;'
             return ''
             
@@ -793,11 +802,19 @@ if "results" in st.session_state and st.session_state["results"]:
             )
             st.plotly_chart(fig_gauge, use_container_width=True)
             
-            rec_badge_style = "badge-buy" if rec == "BUY" else ("badge-watch" if rec == "HOLD / WATCH" else "badge-avoid")
+            # Map legacy signal to clean OJK term
+            clean_rec = clean_signal_name(rec)
+            if clean_rec == "Watchlist Prioritas":
+                rec_badge_style = "badge-buy"
+            elif clean_rec == "Wait and See":
+                rec_badge_style = "badge-watch"
+            else:
+                rec_badge_style = "badge-avoid"
+
             st.markdown(f"""
             <div style="margin-top:-20px; margin-bottom:15px;">
                 <span class="badge {rec_badge_style}" style="font-size:1.4rem; padding:8px 25px; border-radius:30px;">
-                    {rec}
+                    {clean_rec}
                 </span>
             </div>
             """, unsafe_allow_html=True)
@@ -992,7 +1009,8 @@ if "results" in st.session_state and st.session_state["results"]:
                     elif "final_score" in ticker_score_data and "score" not in ticker_score_data:
                         ticker_score_data["score"] = ticker_score_data["final_score"]
                         
-                    st.info(f"Sinyal Aktif: **{ticker_score_data['recommendation']}** | Skor Akhir: **{ticker_score_data['final_score']}** | Harga: **Rp {ticker_score_data.get('close_price', 0):,.0f}**")
+                    clean_rec_info = clean_signal_name(ticker_score_data['recommendation'])
+                    st.info(f"Sinyal Aktif: **{clean_rec_info}** | Skor Akhir: **{ticker_score_data['final_score']}** | Harga: **Rp {ticker_score_data.get('close_price', 0):,.0f}**")
                     
                     col_btn_add1, col_btn_add2 = st.columns(2)
                     with col_btn_add1:
@@ -1202,11 +1220,15 @@ if "results" in st.session_state and st.session_state["results"]:
                     
                 # Return by Signal Type
                 st.markdown("##### 🚥 Rata-rata Return berdasarkan Sinyal Beli")
-                ret_by_sig = df_eval.groupby("app_signal_at_buy")["return_percentage"].mean().reset_index()
+                df_eval_chart = df_eval.copy()
+                df_eval_chart["app_signal_at_buy"] = df_eval_chart["app_signal_at_buy"].apply(clean_signal_name)
+                ret_by_sig = df_eval_chart.groupby("app_signal_at_buy")["return_percentage"].mean().reset_index()
+                
+                colors = ['#10b981' if x == "Watchlist Prioritas" else ('#f59e0b' if x == "Wait and See" else '#ef4444') for x in ret_by_sig["app_signal_at_buy"]]
                 fig_sig = go.Figure(go.Bar(
                     x=ret_by_sig["app_signal_at_buy"],
                     y=ret_by_sig["return_percentage"],
-                    marker_color=['#10b981' if x == "BUY" else ('#f59e0b' if 'HOLD' in x else '#ef4444') for x in ret_by_sig["app_signal_at_buy"]]
+                    marker_color=colors
                 ))
                 fig_sig.update_layout(
                     template="plotly_dark",
@@ -1285,7 +1307,8 @@ if "results" in st.session_state and st.session_state["results"]:
                 for _, row in df_eval.iterrows():
                     res_class = row["prediction_result"]
                     color_tag = "🟢" if res_class == "Correct" else ("🔴" if res_class == "Wrong" else "⚪")
-                    st.markdown(f"{color_tag} **{row['ticker']}** (Beli Saat Sinyal `{row['app_signal_at_buy']}`): {row['prediction_result_detail']}")
+                    sig_name = clean_signal_name(row['app_signal_at_buy'])
+                    st.markdown(f"{color_tag} **{row['ticker']}** (Screening Sinyal `{sig_name}`): {row['prediction_result_detail']}")
             
             # --- TRADE JOURNAL SECTION ---
             st.markdown('<div class="header-divider"></div>', unsafe_allow_html=True)
@@ -1297,7 +1320,7 @@ if "results" in st.session_state and st.session_state["results"]:
             with col_f_j2:
                 j_status_filter = st.selectbox("Filter Status Posisi:", options=["Semua", "Open Position", "Closed Position"])
             with col_f_j3:
-                j_signal_filter = st.selectbox("Filter Sinyal Saat Beli:", options=["Semua", "BUY", "HOLD / WATCH", "AVOID"])
+                j_signal_filter = st.selectbox("Filter Sinyal Saat Beli:", options=["Semua", "Watchlist Prioritas", "Wait and See", "Keluar dari Watchlist"])
                 
             df_j_filtered = df_eval.copy()
             if j_ticker_filter:
@@ -1305,7 +1328,7 @@ if "results" in st.session_state and st.session_state["results"]:
             if j_status_filter != "Semua":
                 df_j_filtered = df_j_filtered[df_j_filtered["status"] == j_status_filter]
             if j_signal_filter != "Semua":
-                df_j_filtered = df_j_filtered[df_j_filtered["app_signal_at_buy"] == j_signal_filter]
+                df_j_filtered = df_j_filtered[df_j_filtered["app_signal_at_buy"].apply(clean_signal_name) == j_signal_filter]
                 
             df_journal_table = pd.DataFrame({
                 "Ticker": df_j_filtered["ticker"],
@@ -1315,7 +1338,7 @@ if "results" in st.session_state and st.session_state["results"]:
                 "Tgl Jual": df_j_filtered["sell_date"].apply(lambda x: str(x) if pd.notna(x) else "N/A"),
                 "Harga Jual": df_j_filtered["sell_price"].apply(lambda x: f"Rp {x:,.0f}" if pd.notna(x) else "N/A"),
                 "Status": df_j_filtered["status"],
-                "Sinyal Beli": df_j_filtered["app_signal_at_buy"],
+                "Sinyal Screening": df_j_filtered["app_signal_at_buy"].apply(clean_signal_name),
                 "Skor Beli": df_j_filtered["final_score_at_buy"],
                 "Return (%)": df_j_filtered["return_percentage"].apply(lambda x: f"{x:+.2f}%" if pd.notna(x) else "N/A"),
                 "Realized P/L": df_j_filtered["realized_profit_loss"].apply(lambda x: f"Rp {x:+,.0f}" if pd.notna(x) else "N/A"),
@@ -1517,11 +1540,11 @@ For tracking & evaluation only. Not financial advice."""
 st.markdown('<div class="header-divider" style="margin-top:40px;"></div>', unsafe_allow_html=True)
 st.markdown("""
 <div style="background-color: rgba(39, 39, 42, 0.4); border-radius: 12px; padding: 20px; border-left: 6px solid #f59e0b; margin-top: 10px;">
-    <h5 style="color: #f59e0b; margin: 0 0 5px 0; font-weight:700;">⚠️ DISCLAIMER & BATASAN PENGGUNAAN</h5>
+    <h5 style="color: #f59e0b; margin: 0 0 5px 0; font-weight:700;">⚠️ DISCLAIMER & REGULATORY COMPLIANCE</h5>
     <p style="color: #cbd5e1; font-size: 0.85rem; margin: 0; line-height:1.4;">
-        <b>Hasil ini hanya untuk alat bantu analisis awal, bukan rekomendasi investasi final atau ajakan membeli/menjual saham.</b> 
-        Setiap keputusan transaksi saham sepenuhnya menjadi tanggung jawab mandiri pengguna. Anda sangat disarankan untuk menyelaraskan hasil screening ini dengan 
-        analisis fundamental perusahaan, broker summary, serta memantau berita pasar modal secara menyeluruh sebelum melakukan jual-beli saham.
+        <b>Aplikasi ini bukan platform rekomendasi saham untuk beli/jual, melainkan AI stock screening & risk monitoring platform.</b> 
+        Seluruh keputusan investasi atau transaksi di pasar modal adalah tanggung jawab pribadi pengguna secara penuh. Hasil screening, skor teknikal/flow, dan indikator yang ditampilkan 
+        hanyalah hasil pemrosesan algoritma data historis dan bukan merupakan ajakan, perintah, atau saran finansial dari pihak pengembang atau OJK.
     </p>
 </div>
 """, unsafe_allow_html=True)

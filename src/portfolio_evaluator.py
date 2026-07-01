@@ -157,10 +157,10 @@ def run_portfolio_evaluation(storage: AnalysisStorage, loader: StockDataLoader, 
             eval_record["prediction_result"] = "Still Running"
             eval_record["prediction_result_detail"] = "Sinyal masih berjalan (posisi baru)."
         else:
-            if app_signal == "BUY":
+            if app_signal in ["BUY", "Watchlist Prioritas"]:
                 if ret > 0:
                     eval_record["prediction_result"] = "Correct"
-                    detail = f"Harga naik setelah sinyal BUY (+{ret:.1f}%)."
+                    detail = f"Harga naik setelah sinyal Watchlist Prioritas (+{ret:.1f}%)."
                     if tp1_hit:
                         detail += " Target TP1 Tercapai."
                     if tp2_hit:
@@ -168,12 +168,12 @@ def run_portfolio_evaluation(storage: AnalysisStorage, loader: StockDataLoader, 
                     eval_record["prediction_result_detail"] = detail
                 else:
                     eval_record["prediction_result"] = "Wrong"
-                    detail = f"Harga turun setelah sinyal BUY ({ret:.1f}%)."
+                    detail = f"Harga turun setelah sinyal Watchlist Prioritas ({ret:.1f}%)."
                     if sl_hit:
                         detail += " Sinyal menyentuh Stop Loss."
                     eval_record["prediction_result_detail"] = detail
                     
-            elif app_signal in ["HOLD / WATCH", "HOLD", "WATCH"]:
+            elif app_signal in ["HOLD / WATCH", "HOLD", "WATCH", "Wait and See"]:
                 if ret > -3.0:
                     eval_record["prediction_result"] = "Correct"
                     eval_record["prediction_result_detail"] = f"Sideways atau naik sesuai sinyal HOLD ({ret:+.1f}%)."

@@ -510,7 +510,7 @@ class AnalysisStorage:
                     "buy_price": buy_price,
                     "lot_quantity": lot_quantity,
                     "total_value": total_value,
-                    "app_signal": score_data.get("recommendation", "BUY"),
+                    "app_signal": score_data.get("recommendation", "Watchlist Prioritas"),
                     "tech_score": score_data.get("technical_score", 0),
                     "flow_score": score_data.get("flow_score", 0),
                     "final_score": score_data.get("final_score", score_data.get("score", 0)),

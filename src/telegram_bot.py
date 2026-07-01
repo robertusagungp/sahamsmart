@@ -34,8 +34,13 @@ def send_telegram_alert(bot_token: str, chat_id: str, record: Dict[str, Any]) ->
     clean_risks = [r.replace("[Teknikal] ", "").replace("[Flow] ", "").replace("[Sinyal] ", "") for r in risks if "Tidak ada" not in r]
     risk_note = "; ".join(clean_risks[:3]) if clean_risks else "Tidak ada risiko signifikan."
     
-    # Set signal icon
-    signal_emoji = "🟢 BUY" if signal == "BUY" else ("🟡 HOLD" if "HOLD" in signal else "🔴 AVOID")
+    # Set signal icon with regulatory compliant terms
+    if signal in ["Watchlist Prioritas", "BUY"]:
+        signal_emoji = "🟢 Watchlist Prioritas"
+    elif signal in ["Wait and See", "HOLD", "WATCH", "HOLD / WATCH"]:
+        signal_emoji = "🟡 Wait and See"
+    else:
+        signal_emoji = "🔴 Keluar dari Watchlist"
     
     # Build HTML Message
     message = f"""👑 <b>SMART SAHAM PREMIUM ALERT</b> 👑
@@ -60,6 +65,9 @@ Sinyal: <b>{signal_emoji}</b>
 
 ⚠️ <b>Catatan Risiko:</b>
 <i>{risk_note}</i>
+
+⚠️ <b>Disclaimer & Informasi:</b>
+<i>Aplikasi ini bukan rekomendasi saham untuk beli/jual, melainkan AI stock screening & risk monitoring platform. Segala keputusan transaksi ada pada tangan pengguna sendiri.</i>
 
 <i>Dikirim otomatis via Dashboard Smart Saham Premium</i>"""
 
