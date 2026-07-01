@@ -10,7 +10,7 @@ from src.data_loader import StockDataLoader
 from src.indicators import calculate_technical_indicators
 from src.scoring import calculate_score
 from src.storage import AnalysisStorage
-from src.stock_list import get_all_idx_tickers, get_idx_stocks_df
+from src.stock_list import get_all_idx_tickers, get_idx_stocks_df, IDX_JII70_TICKERS, is_sharia_compliant
 from src.telegram_bot import send_telegram_alert
 
 # Set page configuration with a modern title and wide layout
@@ -262,6 +262,8 @@ with st.sidebar:
             "Kustom (Pilih Manual)", 
             "Ketik Ticker Manual",
             "Semua Saham IDX (820+ Emiten)", 
+            "Saham Syariah (JII70 - Liquid)",
+            "Semua Saham Syariah (600+ Emiten)",
             "Sektor Finansial (Financials)",
             "Sektor Energi (Energy)",
             "Sektor Teknologi (Technology)",
@@ -299,6 +301,15 @@ with st.sidebar:
     elif selected_preset == "Semua Saham IDX (820+ Emiten)":
         selected_tickers = list(IDX_STOCKS.keys())
         st.warning("⚠️ Menganalisis 820+ saham sekaligus memerlukan waktu sekitar 1-2 menit. Klik tombol Refresh di bawah.")
+    elif selected_preset == "Saham Syariah (JII70 - Liquid)":
+        selected_tickers = [t for t in IDX_JII70_TICKERS if t in IDX_STOCKS]
+        st.info(f"Terpilih {len(selected_tickers)} saham syariah likuid (Jakarta Islamic Index 70).")
+    elif selected_preset == "Semua Saham Syariah (600+ Emiten)":
+        df_stocks_db = load_stock_database_df()
+        # Apply programmatic Sharia compliance filter
+        sharia_df = df_stocks_db[df_stocks_db.apply(lambda r: is_sharia_compliant(r['ticker'], r['name']), axis=1)]
+        selected_tickers = sharia_df['ticker'].tolist()
+        st.warning(f"⚠️ Terpilih {len(selected_tickers)} saham syariah di IDX. Menganalisis kelompok besar ini memerlukan waktu ~1 menit. Klik tombol di bawah.")
     else:
         # Extract English name inside parenthesis if exists, otherwise use name directly
         sector_name = selected_preset.replace("Sektor ", "")

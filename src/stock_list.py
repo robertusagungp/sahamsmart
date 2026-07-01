@@ -178,3 +178,50 @@ def get_all_idx_tickers() -> Dict[str, str]:
     """
     df = get_idx_stocks_df()
     return dict(zip(df['ticker'], df['name']))
+
+# JII70 Tickers List (Jakarta Islamic Index 70 - Liquid Sharia Stocks)
+IDX_JII70_TICKERS = [
+    "ADRO.JK", "ANTM.JK", "APEX.JK", "BRMS.JK", "BUMI.JK", "ELSA.JK", "HRUM.JK", 
+    "ITMG.JK", "MEDC.JK", "PTBA.JK", "TOBA.JK", "PGAS.JK", "BREN.JK", "MBMA.JK", "NCKL.JK",
+    "BRPT.JK", "INCO.JK", "INKP.JK", "INTP.JK", "MDKA.JK", "SMGR.JK", "TPIA.JK", "TKIM.JK",
+    "AMRT.JK", "ASII.JK", "CPIN.JK", "ICBP.JK", "INDF.JK", "KLBF.JK", "MYOR.JK", "SIDO.JK", 
+    "UNVR.JK", "ACES.JK", "ERAA.JK", "MAPI.JK", "BIRD.JK", "EXCL.JK", "ISAT.JK", "JSMR.JK", 
+    "TLKM.JK", "TOWR.JK", "TBIG.JK", "BUKA.JK", "GOTO.JK", "EMTKA.JK", "BRIS.JK", "BTPS.JK"
+]
+
+NON_SHARIA_KEYWORDS = [
+    "BANK", "INSURANCE", "FINANCE", "ASURANSI", "MULTI FINANCE", "SECURITIES", "SEKURITAS",
+    "ROKOK", "TOBACCO", "BREWERY", "BEER", "BIR", "MINUMAN KERAS", "ALCOHOL"
+]
+
+NON_SHARIA_TICKERS = [
+    "BBCA.JK", "BBRI.JK", "BMRI.JK", "BBNI.JK", "BBTN.JK", "ARTO.JK", "PNLF.JK",
+    "BDMN.JK", "BJBR.JK", "BJTM.JK", "NISP.JK", "PNBN.JK", "HMSP.JK", "GGRM.JK", 
+    "WIIM.JK", "DLTA.JK", "MLBI.JK", "BBLD.JK", "CFIN.JK", "ADMF.JK"
+]
+
+def is_sharia_compliant(ticker: str, name: str) -> bool:
+    """
+    Evaluates Sharia compliance based on ticker and company name heuristics.
+    """
+    ticker_upper = ticker.upper()
+    name_upper = name.upper()
+    
+    # 1. Check explicit non-sharia list
+    if ticker_upper in NON_SHARIA_TICKERS:
+        return False
+        
+    # Exception: Sharia Banks are sharia-compliant
+    sharia_exceptions = ["BRIS.JK", "BTPS.JK", "BANK SYARIAH", "BTPN SYARIAH"]
+    if any(ex in ticker_upper or ex in name_upper for ex in sharia_exceptions):
+        return True
+        
+    # 2. Check keywords in company name
+    for kw in NON_SHARIA_KEYWORDS:
+        if kw in name_upper:
+            # Check if name has 'SYARIAH' which overrides the block (e.g. Bank Syariah)
+            if "SYARIAH" in name_upper:
+                return True
+            return False
+            
+    return True
