@@ -1,3 +1,5 @@
 username,action,ticker,timestamp
 testuser_unique,LOGIN,,2026-06-30 14:11:30
 testuser_unique,VIEW_STOCK_DETAILS,TLKM.JK,2026-06-30 14:11:30
+testuser_unique,LOGIN,,2026-06-30 14:13:43
+testuser_unique,VIEW_STOCK_DETAILS,TLKM.JK,2026-06-30 14:13:43

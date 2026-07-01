@@ -103,6 +103,31 @@ st.markdown("""
         margin-bottom: 25px;
         border-radius: 2px;
     }
+    
+    /* Signal Badges */
+    .badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 0.85rem;
+        text-align: center;
+        display: inline-block;
+    }
+    .badge-buy {
+        background-color: rgba(16, 185, 129, 0.2);
+        color: #10b981;
+        border: 1px solid #10b981;
+    }
+    .badge-watch {
+        background-color: rgba(245, 158, 11, 0.2);
+        color: #f59e0b;
+        border: 1px solid #f59e0b;
+    }
+    .badge-avoid {
+        background-color: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+        border: 1px solid #ef4444;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -341,8 +366,12 @@ if "results" not in st.session_state or run_analysis:
             close_price = quote.get("currentPrice", indicators["close"])
             indicators["close"] = close_price
             
+            # Fetch Bandarmologi Flow data from CSV
+            df_broker = loader.fetch_broker_summary(ticker)
+            df_foreign = loader.fetch_foreign_flow(ticker)
+            
             # Scoring
-            score_data = calculate_score(indicators)
+            score_data = calculate_score(indicators, df_broker, df_foreign)
             
             # Create full record
             record = {
@@ -362,10 +391,35 @@ if "results" not in st.session_state or run_analysis:
                 "momentum_1m_pct": indicators["momentum_1m_pct"],
                 "momentum_3m_pct": indicators["momentum_3m_pct"],
                 "volume_ratio": indicators["volume_ratio"],
-                "score": score_data["score"],
-                "recommendation": score_data["recommendation"],
+                
+                # New metrics
+                "technical_score": score_data["technical_score"],
+                "flow_score": score_data["flow_score"],
+                "score": score_data["final_score"], # final_score -> logged to DB as 'score'
+                "recommendation": score_data["recommendation"], # Signal (BUY/HOLD/AVOID)
                 "reasons": score_data["reasons"],
-                "risks": score_data["risks"]
+                "risks": score_data["risks"],
+                "entry_area": score_data["entry_area"],
+                "tp1": score_data["tp1"],
+                "tp2": score_data["tp2"],
+                "sl": score_data["sl"],
+                "risk_reward_ratio": score_data["risk_reward_ratio"],
+                "entry_reason": score_data["entry_reason"],
+                
+                # Support/Resistance indicators
+                "support_20d": indicators["support_20d"],
+                "resistance_20d": indicators["resistance_20d"],
+                "support_50d": indicators["support_50d"],
+                "resistance_50d": indicators["resistance_50d"],
+                "high_20d": indicators["high_20d"],
+                "low_20d": indicators["low_20d"],
+                "distance_from_20d_low": indicators["distance_from_20d_low"],
+                "distance_from_20d_high": indicators["distance_from_20d_high"],
+                
+                # Raw datasets for details
+                "flow_data": score_data["flow_data"],
+                "df_broker": df_broker,
+                "df_foreign": df_foreign
             }
             all_results.append(record)
             
@@ -386,7 +440,7 @@ if "results" not in st.session_state or run_analysis:
                     "momentum_1m": r["momentum_1m"],
                     "momentum_3m": r["momentum_3m"],
                     "volume_ratio": r["volume_ratio"],
-                    "score": r["score"],
+                    "score": r["score"], # final_score
                     "recommendation": r["recommendation"]
                 })
             saved = storage.save_analysis(db_save_records)
@@ -411,44 +465,54 @@ if "results" in st.session_state and st.session_state["results"]:
     with tab_screener:
         # Highlights Metrics Layout
         buy_count = sum(1 for r in results if r["recommendation"] == "BUY")
-        watch_count = sum(1 for r in results if r["recommendation"] == "WATCH")
+        watch_count = sum(1 for r in results if r["recommendation"] == "HOLD / WATCH")
         avoid_count = sum(1 for r in results if r["recommendation"] == "AVOID")
         
         col_m1, col_m2, col_m3, col_m4 = st.columns(4)
         with col_m1:
             st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #3b82f6;"><div class="metric-grid-lbl">Saham Di-Screen</div><div class="metric-grid-val" style="color:#3b82f6;">{len(results)}</div></div>', unsafe_allow_html=True)
         with col_m2:
-            st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #10b981;"><div class="metric-grid-lbl">Rekomendasi BUY</div><div class="metric-grid-val" style="color:#10b981;">{buy_count}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #10b981;"><div class="metric-grid-lbl">Sinyal BUY</div><div class="metric-grid-val" style="color:#10b981;">{buy_count}</div></div>', unsafe_allow_html=True)
         with col_m3:
-            st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #f59e0b;"><div class="metric-grid-lbl">Rekomendasi WATCH</div><div class="metric-grid-val" style="color:#f59e0b;">{watch_count}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #f59e0b;"><div class="metric-grid-lbl">Sinyal HOLD / WATCH</div><div class="metric-grid-val" style="color:#f59e0b;">{watch_count}</div></div>', unsafe_allow_html=True)
         with col_m4:
-            st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #ef4444;"><div class="metric-grid-lbl">Rekomendasi AVOID</div><div class="metric-grid-val" style="color:#ef4444;">{avoid_count}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #ef4444;"><div class="metric-grid-lbl">Sinyal AVOID</div><div class="metric-grid-val" style="color:#ef4444;">{avoid_count}</div></div>', unsafe_allow_html=True)
             
         st.write("")
         st.subheader("🏆 Leaderboard Hasil Screening Saham (Urutan Skor Tertinggi)")
         
         table_data = []
         for r in results:
+            fd = r["flow_data"]
             table_data.append({
                 "Ticker": r["ticker"],
-                "Nama Perusahaan": r["name"],
-                "Harga Close": f"Rp {r['close_price']:,.0f}",
-                "RSI 14": f"{r['rsi']:.1f}" if r['rsi'] is not None else "N/A",
-                "MA 20": f"Rp {r['ma20']:,.0f}" if r['ma20'] is not None else "N/A",
-                "MA 50": f"Rp {r['ma50']:,.0f}" if r['ma50'] is not None else "N/A",
+                "Last Price": f"Rp {r['close_price']:,.0f}",
+                "RSI": f"{r['rsi']:.1f}" if r['rsi'] is not None else "N/A",
+                "MA20": f"Rp {r['ma20']:,.0f}" if r['ma20'] is not None else "N/A",
+                "MA50": f"Rp {r['ma50']:,.0f}" if r['ma50'] is not None else "N/A",
                 "Momentum 1M": f"{r['momentum_1m_pct']:+.2f}%",
                 "Momentum 3M": f"{r['momentum_3m_pct']:+.2f}%",
-                "Vol Ratio": f"{r['volume_ratio']:.2f}x",
-                "Skor": r["score"],
-                "Rekomendasi": r["recommendation"]
+                "Volume Ratio": f"{r['volume_ratio']:.2f}x",
+                "Technical Score": r["technical_score"],
+                "Flow Score": r["flow_score"] if r["flow_score"] is not None else "N/A",
+                "Final Score": r["score"],
+                "Signal": r["recommendation"],
+                "Entry Area": r["entry_area"],
+                "TP1": f"Rp {r['tp1']:,}" if isinstance(r['tp1'], (int, float)) else r['tp1'],
+                "TP2": f"Rp {r['tp2']:,}" if isinstance(r['tp2'], (int, float)) else r['tp2'],
+                "SL": f"Rp {r['sl']:,}" if isinstance(r['sl'], (int, float)) else r['sl'],
+                "Risk Reward": r["risk_reward_ratio"],
+                "Main Reason": r["entry_reason"],
+                "Risk Note": "; ".join([risk.replace("[Teknikal] ", "").replace("[Flow] ", "").replace("[Sinyal] ", "") for risk in r["risks"] if "Tidak ada" not in risk][:2]),
+                "Data Status": fd["data_status"]
             })
             
-        df_table = pd.DataFrame(table_data).sort_values(by="Skor", ascending=False).reset_index(drop=True)
+        df_table = pd.DataFrame(table_data).sort_values(by="Final Score", ascending=False).reset_index(drop=True)
         
         def style_recommendation(val):
             if val == "BUY":
                 return 'background-color: rgba(16, 185, 129, 0.25); color: #10b981; font-weight: bold; border: 1px solid #10b981;'
-            elif val == "WATCH":
+            elif val == "HOLD / WATCH":
                 return 'background-color: rgba(245, 158, 11, 0.25); color: #f59e0b; font-weight: bold; border: 1px solid #f59e0b;'
             elif val == "AVOID":
                 return 'background-color: rgba(239, 68, 68, 0.25); color: #ef4444; font-weight: bold; border: 1px solid #ef4444;'
@@ -456,9 +520,9 @@ if "results" in st.session_state and st.session_state["results"]:
             
         styler = df_table.style
         if hasattr(styler, "map"):
-            styled_df = styler.map(style_recommendation, subset=["Rekomendasi"])
+            styled_df = styler.map(style_recommendation, subset=["Signal"])
         else:
-            styled_df = styler.applymap(style_recommendation, subset=["Rekomendasi"])
+            styled_df = styler.applymap(style_recommendation, subset=["Signal"])
             
         st.dataframe(styled_df, use_container_width=True, hide_index=True)
         
@@ -484,7 +548,7 @@ if "results" in st.session_state and st.session_state["results"]:
         col_det_left, col_det_right = st.columns([5, 3])
         
         with col_det_left:
-            st.markdown(f"##### Grafik Tren Candlestick & Moving Average: **{selected_stock}**")
+            st.markdown(f"##### Grafik Candlestick, MA, & Price Channels (20D Support/Resistance): **{selected_stock}**")
             
             # Chart period selector
             chart_range = st.radio("Rentang Tampilan:", ["3 Bulan", "6 Bulan", "1 Tahun"], horizontal=True, key="c_range")
@@ -514,14 +578,29 @@ if "results" in st.session_state and st.session_state["results"]:
                 fig.add_trace(go.Scatter(
                     x=df_chart['Date'], y=df_chart['MA20'],
                     line=dict(color='#3b82f6', width=2),
-                    name='MA 20 (Tren Pendek)'
+                    name='MA 20'
                 ))
             # MA 50
             if 'MA50' in df_chart.columns:
                 fig.add_trace(go.Scatter(
                     x=df_chart['Date'], y=df_chart['MA50'],
                     line=dict(color='#f59e0b', width=2),
-                    name='MA 50 (Tren Menengah)'
+                    name='MA 50'
+                ))
+                
+            # Support 20D (dotted red line)
+            if 'Support20D' in df_chart.columns:
+                fig.add_trace(go.Scatter(
+                    x=df_chart['Date'], y=df_chart['Support20D'],
+                    line=dict(color='#ef4444', width=1.5, dash='dash'),
+                    name='Support 20D (Lowest Low)'
+                ))
+            # Resistance 20D (dotted green line)
+            if 'Resistance20D' in df_chart.columns:
+                fig.add_trace(go.Scatter(
+                    x=df_chart['Date'], y=df_chart['Resistance20D'],
+                    line=dict(color='#10b981', width=1.5, dash='dash'),
+                    name='Resistance 20D (Highest High)'
                 ))
                 
             fig.update_layout(
@@ -535,8 +614,31 @@ if "results" in st.session_state and st.session_state["results"]:
             )
             st.plotly_chart(fig, use_container_width=True)
             
+            # Volume Chart with MA20 Volume line
+            st.markdown(f"##### Volume Transaksi Harian & Rata-rata 20 Hari: **{selected_stock}**")
+            fig_vol = go.Figure()
+            fig_vol.add_trace(go.Bar(
+                x=df_chart['Date'], y=df_chart['Volume'],
+                marker_color='rgba(59, 130, 246, 0.4)',
+                name='Volume Harian'
+            ))
+            fig_vol.add_trace(go.Scatter(
+                x=df_chart['Date'], y=df_chart['Vol_MA20'],
+                line=dict(color='#3b82f6', width=2),
+                name='Vol MA20'
+            ))
+            fig_vol.update_layout(
+                template="plotly_dark",
+                margin=dict(l=20, r=20, t=10, b=10),
+                height=180,
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+            )
+            st.plotly_chart(fig_vol, use_container_width=True)
+            
             # RSI Chart
-            st.markdown(f"##### Indikator Kekuatan Harga (RSI 14): **{selected_stock}**")
+            st.markdown(f"##### Indikator Relative Strength Index (RSI 14): **{selected_stock}**")
             fig_rsi = go.Figure()
             fig_rsi.add_trace(go.Scatter(
                 x=df_chart['Date'], y=df_chart['RSI'],
@@ -579,8 +681,8 @@ if "results" in st.session_state and st.session_state["results"]:
                     'borderwidth': 2,
                     'bordercolor': "rgba(255,255,255,0.1)",
                     'steps': [
-                        {'range': [0, 50], 'color': '#ef4444'},
-                        {'range': [50, 75], 'color': '#f59e0b'},
+                        {'range': [0, 55], 'color': '#ef4444'},
+                        {'range': [55, 75], 'color': '#f59e0b'},
                         {'range': [75, 100], 'color': '#10b981'}
                     ],
                     'threshold': {
@@ -599,7 +701,7 @@ if "results" in st.session_state and st.session_state["results"]:
             )
             st.plotly_chart(fig_gauge, use_container_width=True)
             
-            rec_badge_style = "badge-buy" if rec == "BUY" else ("badge-watch" if rec == "WATCH" else "badge-avoid")
+            rec_badge_style = "badge-buy" if rec == "BUY" else ("badge-watch" if rec == "HOLD / WATCH" else "badge-avoid")
             st.markdown(f"""
             <div style="margin-top:-20px; margin-bottom:15px;">
                 <span class="badge {rec_badge_style}" style="font-size:1.4rem; padding:8px 25px; border-radius:30px;">
@@ -609,38 +711,102 @@ if "results" in st.session_state and st.session_state["results"]:
             """, unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
             
-            # Technical Metrics Summary Grid
-            st.markdown("##### 📝 Metrik Teknikal Utama")
-            col_g1, col_g2 = st.columns(2)
-            with col_g1:
-                st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Harga Terakhir</div><div class="metric-grid-val">Rp {stock_details["close_price"]:,.0f}</div></div>', unsafe_allow_html=True)
-                st.write("")
-                st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">RSI (14)</div><div class="metric-grid-val">{stock_details["rsi"]:.1f}</div></div>', unsafe_allow_html=True)
-                st.write("")
-                st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Rasio Volume</div><div class="metric-grid-val">{stock_details["volume_ratio"]:.2f}x</div></div>', unsafe_allow_html=True)
-            with col_g2:
-                st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Momentum 1M</div><div class="metric-grid-val" style="color:{"#10b981" if stock_details["momentum_1m"] > 0 else "#ef4444"}">{stock_details["momentum_1m_pct"]:+.2f}%</div></div>', unsafe_allow_html=True)
-                st.write("")
-                st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Momentum 3M</div><div class="metric-grid-val" style="color:{"#10b981" if stock_details["momentum_3m"] > 0 else "#ef4444"}">{stock_details["momentum_3m_pct"]:+.2f}%</div></div>', unsafe_allow_html=True)
-                st.write("")
-                st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">MA20 vs MA50</div><div class="metric-grid-val" style="font-size:1.1rem; padding-top:4px;">{"MA20 > MA50" if (stock_details["ma20"] or 0) > (stock_details["ma50"] or 0) else "MA20 < MA50"}</div></div>', unsafe_allow_html=True)
+            # Combined Grid Score Dashboard
+            st.markdown("##### 🔢 Detail Bobot Penilaian")
+            col_t1, col_t2 = st.columns(2)
+            with col_t1:
+                st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Skor Teknikal (60%)</div><div class="metric-grid-val" style="color:#60a5fa;">{stock_details["technical_score"]}</div></div>', unsafe_allow_html=True)
+            with col_t2:
+                flow_s_val = f"{stock_details['flow_score']}" if stock_details['flow_score'] is not None else "N/A"
+                st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Skor Flow (40%)</div><div class="metric-grid-val" style="color:#a78bfa;">{flow_s_val}</div></div>', unsafe_allow_html=True)
                 
             st.write("")
             
-            # Bullet point reasons & risks
-            with st.expander("🟢 Detail Poin Penilaian Positif", expanded=True):
-                if stock_details["reasons"]:
-                    for reason in stock_details["reasons"]:
-                        st.markdown(f"**✓** {reason}")
-                else:
-                    st.caption("Tidak ada indikator teknikal positif terdeteksi saat ini.")
+            # --- TRADING SIGNAL SETUP SECTION ---
+            st.markdown("##### 🎯 Rekomendasi Sinyal Trading & Risk Setup")
+            st.markdown(f"**Entry Area:** <span style='font-size:1.15rem; color:#60a5fa; font-weight:700;'>{stock_details['entry_area']}</span>", unsafe_allow_html=True)
+            
+            col_s1, col_s2, col_s3, col_s4 = st.columns(4)
+            with col_s1:
+                tp1_val = f"Rp {stock_details['tp1']:,}" if isinstance(stock_details['tp1'], (int, float)) else stock_details['tp1']
+                st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">TP 1</div><div class="metric-grid-val" style="color:#34d399; font-size:1.1rem; padding-top:4px;">{tp1_val}</div></div>', unsafe_allow_html=True)
+            with col_s2:
+                tp2_val = f"Rp {stock_details['tp2']:,}" if isinstance(stock_details['tp2'], (int, float)) else stock_details['tp2']
+                st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">TP 2</div><div class="metric-grid-val" style="color:#10b981; font-size:1.1rem; padding-top:4px;">{tp2_val}</div></div>', unsafe_allow_html=True)
+            with col_s3:
+                sl_val = f"Rp {stock_details['sl']:,}" if isinstance(stock_details['sl'], (int, float)) else stock_details['sl']
+                st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Stop Loss</div><div class="metric-grid-val" style="color:#f87171; font-size:1.1rem; padding-top:4px;">{sl_val}</div></div>', unsafe_allow_html=True)
+            with col_s4:
+                st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">R/R Ratio</div><div class="metric-grid-val" style="font-size:1.1rem; padding-top:4px;">{stock_details["risk_reward_ratio"]}</div></div>', unsafe_allow_html=True)
+            
+            st.write("")
+            st.markdown(f"💡 **Alasan Setup:** {stock_details['entry_reason']}")
+            
+            # Bandarmologi summary section
+            st.markdown("##### 🐳 Hasil Analisis Bandarmologi & Flow")
+            fd = stock_details["flow_data"]
+            if stock_details["flow_score"] is None:
+                st.warning("⚠️ Data bandarmologi tidak tersedia.")
+            else:
+                col_f1, col_f2, col_f3 = st.columns(3)
+                with col_f1:
+                    f_net_1d = fd["foreign_net_1d"]
+                    f_color = "#10b981" if f_net_1d > 0 else "#ef4444"
+                    st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Foreign 1D</div><div class="metric-grid-val" style="color:{f_color}; font-size:1.0rem;">Rp {f_net_1d/1e9:+.1f}B</div></div>', unsafe_allow_html=True)
+                with col_f2:
+                    f_net_5d = fd["foreign_net_5d"]
+                    f_color = "#10b981" if f_net_5d > 0 else "#ef4444"
+                    st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Foreign 5D</div><div class="metric-grid-val" style="color:{f_color}; font-size:1.0rem;">Rp {f_net_5d/1e9:+.1f}B</div></div>', unsafe_allow_html=True)
+                with col_f3:
+                    f_net_20d = fd["foreign_net_20d"]
+                    f_color = "#10b981" if f_net_20d > 0 else "#ef4444"
+                    st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Foreign 20D</div><div class="metric-grid-val" style="color:{f_color}; font-size:1.0rem;">Rp {f_net_20d/1e9:+.1f}B</div></div>', unsafe_allow_html=True)
                     
-            with st.expander("⚠️ Detail Faktor Risiko Teknis", expanded=True):
-                if stock_details["risks"]:
-                    for risk in stock_details["risks"]:
-                        st.markdown(f"**•** <span style='color:#f87171'>{risk}</span>", unsafe_allow_html=True)
-                else:
-                    st.caption("Tidak ada faktor risiko teknis signifikan yang terdeteksi.")
+                st.write("")
+                st.markdown(f"**Top Buyer Brokers:** {fd['top_buyer_brokers']} (Accumulation: `{fd['broker_accumulation_signal']}`)")
+                st.markdown(f"**Top Seller Brokers:** {fd['top_seller_brokers']} (Distribution: `{fd['broker_distribution_signal']}`)")
+                
+                # Render top 5 buyers/sellers summaries
+                df_b = stock_details["df_broker"]
+                if df_b is not None and not df_b.empty:
+                    with st.expander("🔍 Detail Top 5 Transaksi Broker Hari Ini"):
+                        latest_date = df_b['date'].max()
+                        df_b_latest = df_b[df_b['date'] == latest_date].copy()
+                        broker_summary = df_b_latest.groupby(['broker_code', 'broker_name']).agg({'net_value': 'sum'}).reset_index()
+                        
+                        df_buyers = broker_summary[broker_summary['net_value'] > 0].sort_values('net_value', ascending=False).head(5)
+                        df_sellers = broker_summary[broker_summary['net_value'] < 0].sort_values('net_value', ascending=True).head(5)
+                        
+                        df_buyers_disp = pd.DataFrame({
+                            "Kode": df_buyers["broker_code"],
+                            "Broker Buyer": df_buyers["broker_name"],
+                            "Net Buy (Rp)": df_buyers["net_value"].apply(lambda x: f"Rp {x:,.0f}")
+                        }).reset_index(drop=True)
+                        
+                        df_sellers_disp = pd.DataFrame({
+                            "Kode": df_sellers["broker_code"],
+                            "Broker Seller": df_sellers["broker_name"],
+                            "Net Sell (Rp)": df_sellers["net_value"].abs().apply(lambda x: f"Rp {x:,.0f}")
+                        }).reset_index(drop=True)
+                        
+                        col_br_b, col_br_s = st.columns(2)
+                        with col_br_b:
+                            st.caption("Top 5 Buyers")
+                            st.dataframe(df_buyers_disp, hide_index=True)
+                        with col_br_s:
+                            st.caption("Top 5 Sellers")
+                            st.dataframe(df_sellers_disp, hide_index=True)
+
+            # Display reasons & risks lists
+            with st.expander("🟢 Rincian Analisis (Teknikal & Flow)", expanded=False):
+                for reason in stock_details["reasons"]:
+                    st.markdown(f"**✓** {reason}")
+                    
+            with st.expander("⚠️ Faktor Risiko Singkat Terdeteksi", expanded=True):
+                for risk in stock_details["risks"]:
+                    # Color code systems messages
+                    risk_color = "#f87171" if "[Sistem]" not in risk else "#60a5fa"
+                    st.markdown(f"**•** <span style='color:{risk_color}'>{risk}</span>", unsafe_allow_html=True)
                     
     with tab_history:
         st.subheader("📜 Log Riwayat Analisis Harian")
@@ -688,10 +854,9 @@ st.markdown("""
 <div style="background-color: rgba(39, 39, 42, 0.4); border-radius: 12px; padding: 20px; border-left: 6px solid #f59e0b; margin-top: 10px;">
     <h5 style="color: #f59e0b; margin: 0 0 5px 0; font-weight:700;">⚠️ DISCLAIMER & BATASAN PENGGUNAAN</h5>
     <p style="color: #cbd5e1; font-size: 0.85rem; margin: 0; line-height:1.4;">
-        Aplikasi Smart Saham Premium ini dirancang murni sebagai alat bantu pengambilan keputusan awal (decision-support tool) untuk mempermudah screening teknikal. 
-        <b>Hasil analisis, nilai skor, dan rekomendasi (BUY / WATCH / AVOID) bukanlah saran keuangan final atau ajakan mutlak untuk membeli/menjual saham.</b> 
+        <b>Hasil ini hanya untuk alat bantu analisis awal, bukan rekomendasi investasi final atau ajakan membeli/menjual saham.</b> 
         Setiap keputusan transaksi saham sepenuhnya menjadi tanggung jawab mandiri pengguna. Anda sangat disarankan untuk menyelaraskan hasil screening ini dengan 
-        analisis fundamental perusahaan serta memantau berita pasar modal secara menyeluruh.
+        analisis fundamental perusahaan, broker summary, serta memantau berita pasar modal secara menyeluruh sebelum melakukan jual-beli saham.
     </p>
 </div>
 """, unsafe_allow_html=True)

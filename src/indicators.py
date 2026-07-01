@@ -29,7 +29,7 @@ def calculate_technical_indicators(df: pd.DataFrame) -> Optional[Dict]:
     Returns a dictionary of indicators at the last available trading day.
     """
     if df is None or len(df) < 60:
-        # We need at least 60 rows for 3-month momentum (60 trading days) and MA50 calculations
+        # We need at least 60 rows for 3-month momentum (60 trading days) and MA50/Support50D calculations
         return None
         
     df = df.copy()
@@ -46,13 +46,24 @@ def calculate_technical_indicators(df: pd.DataFrame) -> Optional[Dict]:
     df['Vol_MA20'] = df['Volume'].rolling(window=20).mean()
     
     # Momentum (20 days ~ 1 month, 60 days ~ 3 months)
-    # Using shift to compare close price today with close price X days ago
     df['Mom_1M'] = df['Close'] - df['Close'].shift(20)
     df['Mom_3M'] = df['Close'] - df['Close'].shift(60)
     
     # Percentage momentum for display
     df['Mom_1M_pct'] = (df['Close'] / df['Close'].shift(20) - 1) * 100
     df['Mom_3M_pct'] = (df['Close'] / df['Close'].shift(60) - 1) * 100
+    
+    # Price Boundaries (Support and Resistance)
+    df['Support20D'] = df['Low'].rolling(window=20).min()
+    df['Resistance20D'] = df['High'].rolling(window=20).max()
+    df['Support50D'] = df['Low'].rolling(window=50).min()
+    df['Resistance50D'] = df['High'].rolling(window=50).max()
+    
+    # High/Low for distance computations
+    df['High20D'] = df['High'].rolling(window=20).max()
+    df['Low20D'] = df['Low'].rolling(window=20).min()
+    df['Dist_Low20D'] = (df['Close'] / df['Low20D'] - 1) * 100
+    df['Dist_High20D'] = (df['High20D'] / df['Close'] - 1) * 100
     
     # Get last row (latest data)
     last_row = df.iloc[-1]
@@ -78,6 +89,17 @@ def calculate_technical_indicators(df: pd.DataFrame) -> Optional[Dict]:
         "momentum_3m": float(last_row['Mom_3M']) if not np.isnan(last_row['Mom_3M']) else 0.0,
         "momentum_1m_pct": float(last_row['Mom_1M_pct']) if not np.isnan(last_row['Mom_1M_pct']) else 0.0,
         "momentum_3m_pct": float(last_row['Mom_3M_pct']) if not np.isnan(last_row['Mom_3M_pct']) else 0.0,
+        
+        # New indicators
+        "support_20d": float(last_row['Support20D']) if not np.isnan(last_row['Support20D']) else None,
+        "resistance_20d": float(last_row['Resistance20D']) if not np.isnan(last_row['Resistance20D']) else None,
+        "support_50d": float(last_row['Support50D']) if not np.isnan(last_row['Support50D']) else None,
+        "resistance_50d": float(last_row['Resistance50D']) if not np.isnan(last_row['Resistance50D']) else None,
+        "high_20d": float(last_row['High20D']) if not np.isnan(last_row['High20D']) else None,
+        "low_20d": float(last_row['Low20D']) if not np.isnan(last_row['Low20D']) else None,
+        "distance_from_20d_low": float(last_row['Dist_Low20D']) if not np.isnan(last_row['Dist_Low20D']) else 0.0,
+        "distance_from_20d_high": float(last_row['Dist_High20D']) if not np.isnan(last_row['Dist_High20D']) else 0.0,
+        
         # Full historical data with indicators to be used for charts
         "history": df
     }
