@@ -299,10 +299,10 @@ with st.sidebar:
         selected_tickers = list(IDX_STOCKS.keys())
         st.warning("⚠️ Menganalisis 820+ saham sekaligus memerlukan waktu sekitar 1-2 menit. Klik tombol Refresh di bawah.")
     else:
-        # Extract sector name from preset
+        # Extract English name inside parenthesis if exists, otherwise use name directly
         sector_name = selected_preset.replace("Sektor ", "")
-        if " (" in sector_name:
-            sector_name = sector_name.split(" (")[0]
+        if "(" in sector_name and ")" in sector_name:
+            sector_name = sector_name.split("(")[1].split(")")[0]
         
         df_stocks_db = load_stock_database_df()
         df_sector = df_stocks_db[df_stocks_db['sector'] == sector_name]

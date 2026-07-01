@@ -92,8 +92,11 @@ def get_idx_stocks_df() -> pd.DataFrame:
             df = pd.read_csv(CACHE_FILE_PATH)
             if 'sector' in df.columns:
                 return df
+            else:
+                # Old cache format, remove it to force download
+                os.remove(CACHE_FILE_PATH)
         except Exception as e:
-            print(f"Error reading stock list cache: {e}")
+            print(f"Error reading/removing stock list cache: {e}")
 
     # 2. Try fetching from wildangunawan/Dataset-Saham-IDX on GitHub
     SECTORS = {
