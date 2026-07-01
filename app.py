@@ -339,7 +339,33 @@ with st.sidebar:
 
 # ----------------- CONTROLLER / STOCK PROCESSING PIPELINE -----------------
 
-if "results" not in st.session_state or run_analysis:
+# Track selected tickers and period in session state to auto-run when changed
+if "last_selected_tickers" not in st.session_state:
+    st.session_state["last_selected_tickers"] = []
+if "last_history_period" not in st.session_state:
+    st.session_state["last_history_period"] = "1y"
+
+tickers_changed = set(selected_tickers) != set(st.session_state["last_selected_tickers"])
+period_changed = history_period != st.session_state["last_history_period"]
+
+should_trigger = False
+is_large_batch = len(selected_tickers) > 120
+
+if "results" not in st.session_state:
+    if not is_large_batch and selected_tickers:
+        should_trigger = True
+elif run_analysis:
+    should_trigger = True
+elif (tickers_changed or period_changed) and not is_large_batch:
+    should_trigger = True
+
+if "results" not in st.session_state and not should_trigger:
+    st.info("💡 **Silakan pilih kategori saham di sidebar kiri dan klik '🔄 Jalankan & Simpan Analisis Baru'** untuk memulai screening.")
+
+if should_trigger:
+    st.session_state["last_selected_tickers"] = selected_tickers
+    st.session_state["last_history_period"] = history_period
+    
     with st.spinner("Menarik data terupdate & memproses indikator teknikal..."):
         all_results = []
         raw_histories = {}
@@ -478,7 +504,15 @@ if "results" in st.session_state and st.session_state["results"]:
             st.markdown(f'<div class="metric-grid-card" style="border-top: 4px solid #ef4444;"><div class="metric-grid-lbl">Sinyal AVOID</div><div class="metric-grid-val" style="color:#ef4444;">{avoid_count}</div></div>', unsafe_allow_html=True)
             
         st.write("")
-        st.subheader("🏆 Leaderboard Hasil Screening Saham (Urutan Skor Tertinggi)")
+        col_tbl_title, col_tbl_filter = st.columns([2, 1])
+        with col_tbl_title:
+            st.subheader("🏆 Leaderboard Hasil Screening Saham")
+        with col_tbl_filter:
+            signal_filter = st.multiselect(
+                "Filter Sinyal:",
+                options=["BUY", "HOLD / WATCH", "AVOID"],
+                default=["BUY", "HOLD / WATCH", "AVOID"]
+            )
         
         table_data = []
         for r in results:
@@ -508,6 +542,9 @@ if "results" in st.session_state and st.session_state["results"]:
             
         df_table = pd.DataFrame(table_data).sort_values(by="Final Score", ascending=False).reset_index(drop=True)
         
+        # Apply dynamic signal filtering
+        df_table_filtered = df_table[df_table['Signal'].isin(signal_filter)].reset_index(drop=True)
+        
         def style_recommendation(val):
             if val == "BUY":
                 return 'background-color: rgba(16, 185, 129, 0.25); color: #10b981; font-weight: bold; border: 1px solid #10b981;'
@@ -517,7 +554,7 @@ if "results" in st.session_state and st.session_state["results"]:
                 return 'background-color: rgba(239, 68, 68, 0.25); color: #ef4444; font-weight: bold; border: 1px solid #ef4444;'
             return ''
             
-        styler = df_table.style
+        styler = df_table_filtered.style
         if hasattr(styler, "map"):
             styled_df = styler.map(style_recommendation, subset=["Signal"])
         else:
@@ -530,9 +567,14 @@ if "results" in st.session_state and st.session_state["results"]:
         # ----------------- SECTION: WOW KICK DETAILED ANALYSIS -----------------
         st.markdown("### 🔍 Analisis Komprehensif & Visualisasi Interaktif")
         
+        # Align selectbox options with current signal filters
+        filtered_detail_options = [r["ticker"] for r in results if r["recommendation"] in signal_filter]
+        if not filtered_detail_options:
+            filtered_detail_options = [r["ticker"] for r in results]
+            
         selected_stock = st.selectbox(
             "Pilih Saham untuk Analisis Detil:",
-            options=[r["ticker"] for r in results],
+            options=filtered_detail_options,
             format_func=lambda x: f"{x} - {IDX_STOCKS.get(x, 'Custom Ticker')}"
         )
         
