@@ -56,7 +56,7 @@ def get_custom_font(size, bold=False):
 def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ratio: str = "1080x1080") -> io.BytesIO:
     """
     Generates a stunning, premium trading share card with a modern widget-card grid composition.
-    Maximizes text visibility by wrapping metrics inside individual card widgets.
+    Maps all transaction labels to simulation log vocabulary to ensure OJK legal safety.
     """
     # 1. Dimensions Setup
     if size_ratio == "1080x1920":
@@ -77,6 +77,25 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
     realized_pl = float(trade_data.get("realized_profit_loss", 0))
     holding_days = int(trade_data.get("holding_days", 0))
     exit_type = str(trade_data.get("exit_type", "Manual Sell"))
+    
+    # Translate exit type to compliant Bahasa
+    exit_translations = {
+        "Take Profit 1 Hit": "TP1 Tercapai",
+        "Take Profit 2 Hit": "TP2 Tercapai",
+        "Stop Loss Hit": "SL Terlewati",
+        "Manual Sell": "Exit Mandiri",
+        "Time-based Exit": "Batas Waktu",
+        "Signal Turned Avoid": "Sinyal Berubah",
+        "Target Profit 1 Tercapai": "TP1 Tercapai",
+        "Target Profit 2 Tercapai": "TP2 Tercapai",
+        "Stop Loss Terlewati": "SL Terlewati",
+        "Exit Mandiri": "Exit Mandiri",
+        "Batas Waktu Simulasi": "Batas Waktu",
+        "Sinyal Berubah": "Sinyal Berubah",
+        "Lainnya": "Lainnya"
+    }
+    exit_type_clean = exit_translations.get(exit_type, exit_type)
+    
     raw_signal = str(trade_data.get("app_signal_at_buy", "BUY"))
     if raw_signal in ["Watchlist Prioritas", "BUY"]:
         app_signal = "Watchlist Prioritas"
@@ -175,7 +194,7 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
         
     # Draw Header (Smart Saham Premium)
     draw.text((90, 85), "👑 Smart Saham Premium", fill="#f59e0b", font=font_title)
-    draw.text((90, 130), f"CLOSED TRADE EXIT REPORT  •  {sell_date}", fill=text_secondary, font=font_label)
+    draw.text((90, 130), f"SIMULATED REPORT / EXIT LOG  •  {sell_date}", fill=text_secondary, font=font_label)
     draw.line([90, 165, width - 90, 165], fill=box_border, width=2)
     
     # 4. ASPECT RATIO LAYOUT DRAWERS WITH WIDGET BOXES
@@ -193,7 +212,7 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
         
         # Signal tag
         draw.rounded_rectangle([90, 305, 280, 340], radius=6, fill=divider_color)
-        draw.text((105, 313), f"Signal at Buy: {app_signal}", fill=text_secondary, font=get_custom_font(14, bold=True))
+        draw.text((105, 313), f"Screening Signal: {app_signal}", fill=text_secondary, font=get_custom_font(14, bold=True))
         
         # Grid of 4 cols x 2 rows
         col_w = 230
@@ -203,12 +222,12 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
         start_y = 370
         
         metrics = [
-            ("BUY PRICE", f"Rp {buy_price:,.0f}", text_secondary, text_primary),
+            ("ENTRY PRICE", f"Rp {buy_price:,.0f}", text_secondary, text_primary),
             ("HOLDING TIME", f"{holding_days} Days", text_secondary, text_primary),
             ("TP1 / TP2 HIT", f"{tp1_hit} / {tp2_hit}", text_secondary, text_primary),
             ("MAX GAIN / DD", f"{max_gain:+.1f}% / {max_dd:+.1f}%", text_secondary, text_primary),
-            ("SELL PRICE", f"Rp {sell_price:,.0f}", text_secondary, text_primary),
-            ("REALIZED P/L", f"Rp {realized_pl:+,.0f}", text_secondary, accent_color),
+            ("EXIT PRICE", f"Rp {sell_price:,.0f}", text_secondary, text_primary),
+            ("SIMULATION P/L", f"Rp {realized_pl:+,.0f}", text_secondary, accent_color),
             ("SL HIT", sl_hit, text_secondary, text_primary),
             ("FINAL SCORE", f"{final_score:.1f}", text_secondary, text_primary)
         ]
@@ -235,7 +254,7 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
             
         # Footer
         draw.line([90, 560, width - 90, 560], fill=box_border, width=1)
-        draw.text((90, 578), "For tracking & evaluation only. Not financial advice.", fill=text_muted, font=font_footer)
+        draw.text((90, 578), "Simulation log only. Not buying/selling advice.", fill=text_muted, font=font_footer)
         draw.text((width - 340, 578), f"Generated: {datetime.now().strftime('%Y-%m-%d')}", fill=text_muted, font=font_footer)
 
     elif size_ratio == "1080x1920": # INSTAGRAM STORY (Vertical)
@@ -251,7 +270,7 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
         draw.text((105, 590), f"RESULT: {status_label}", fill=accent_color, font=get_custom_font(16, bold=True))
         
         draw.rounded_rectangle([310, 580, 550, 620], radius=8, fill=divider_color)
-        draw.text((325, 590), f"SIGNAL: {app_signal} (Sc: {final_score})", fill=text_secondary, font=get_custom_font(16, bold=True))
+        draw.text((325, 590), f"SCREENING: {app_signal} (Sc: {final_score})", fill=text_secondary, font=get_custom_font(16, bold=True))
         
         draw.line([90, 660, width - 90, 660], fill=box_border, width=2)
         
@@ -263,16 +282,16 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
         start_y = 700
         
         metrics = [
-            ("BUY PRICE", f"Rp {buy_price:,.0f} ({buy_date})", text_secondary, text_primary),
-            ("SELL PRICE", f"Rp {sell_price:,.0f} ({sell_date})", text_secondary, text_primary),
-            ("NET REALIZED P/L", f"Rp {realized_pl:+,.0f}", text_secondary, accent_color),
+            ("ENTRY PRICE", f"Rp {buy_price:,.0f} ({buy_date})", text_secondary, text_primary),
+            ("EXIT PRICE", f"Rp {sell_price:,.0f} ({sell_date})", text_secondary, text_primary),
+            ("SIMULATION P/L", f"Rp {realized_pl:+,.0f}", text_secondary, accent_color),
             ("HOLDING PERIOD", f"{holding_days} Days", text_secondary, text_primary),
-            ("TP1 / TP2 TARGET", f"Rp {tp1:,.0f} / Rp {tp2:,.0f}" if (tp1 and tp2) else "N/A", text_secondary, text_primary),
+            ("TP1 / TP2 LIMIT", f"Rp {tp1:,.0f} / Rp {tp2:,.0f}" if (tp1 and tp2) else "N/A", text_secondary, text_primary),
             ("STOP LOSS LIMIT", f"Rp {sl:,.0f}" if sl else "N/A", text_secondary, text_primary),
             ("TP1 / TP2 HITS", f"{tp1_hit} / {tp2_hit}", text_secondary, text_primary),
             ("STOP LOSS HIT", sl_hit, text_secondary, text_primary),
-            ("MAX GAIN AFTER BUY", f"{max_gain:+.2f}%", text_secondary, "#10b981"),
-            ("MAX DRAWDOWN AFTER BUY", f"{max_dd:+.2f}%", text_secondary, "#ef4444")
+            ("MAX GAIN AFTER ENTRY", f"{max_gain:+.2f}%", text_secondary, "#10b981"),
+            ("MAX DRAWDOWN AFTER ENTRY", f"{max_dd:+.2f}%", text_secondary, "#ef4444")
         ]
         
         for idx, (lbl, val, lbl_col, val_col) in enumerate(metrics):
@@ -307,7 +326,7 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
         
         # Footer
         draw.line([90, height - 160, width - 90, height - 160], fill=box_border, width=2)
-        draw.text((90, height - 120), "For tracking & evaluation only. Not financial advice.", fill=text_muted, font=font_footer)
+        draw.text((90, height - 120), "Simulation log only. Not buying/selling advice.", fill=text_muted, font=font_footer)
         draw.text((width - 340, height - 120), f"Generated: {datetime.now().strftime('%Y-%m-%d')}", fill=text_muted, font=font_footer)
 
     else: # 1080x1080 INSTAGRAM FEED (Square Grid)
@@ -319,13 +338,13 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
         draw.text((105, 313), status_label, fill=accent_color, font=get_custom_font(14, bold=True))
         
         draw.rounded_rectangle([280, 305, 490, 340], radius=6, fill=divider_color)
-        draw.text((295, 313), f"Signal: {app_signal} (Sc: {final_score})", fill=text_secondary, font=get_custom_font(14, bold=True))
+        draw.text((295, 313), f"Screening: {app_signal} (Sc: {final_score})", fill=text_secondary, font=get_custom_font(14, bold=True))
         
         # Giant ROI Badge Right
         draw.rounded_rectangle([520, 185, width - 90, 335], radius=20, fill=accent_color)
         roi_text = f"{roi:+.2f}%"
         draw.text((560, 205), roi_text, fill="#ffffff", font=font_roi)
-        draw.text((560, 290), "REALIZED RETURN (ROI)", fill="#f1f5f9", font=get_custom_font(15, bold=True))
+        draw.text((560, 290), "SIMULATED RETURN (ROI)", fill="#f1f5f9", font=get_custom_font(15, bold=True))
         
         draw.line([90, 380, width - 90, 380], fill=box_border, width=2)
         
@@ -339,25 +358,25 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
         
         if is_exec:
             metrics = [
-                ("BUY PRICE", f"Rp {buy_price:,.0f}", text_secondary, text_primary),
-                ("SELL PRICE", f"Rp {sell_price:,.0f}", text_secondary, text_primary),
-                ("NET REALIZED VALUE", f"Rp {realized_pl:+,.0f}", text_secondary, accent_color),
+                ("ENTRY PRICE", f"Rp {buy_price:,.0f}", text_secondary, text_primary),
+                ("EXIT PRICE", f"Rp {sell_price:,.0f}", text_secondary, text_primary),
+                ("SIMULATION P/L", f"Rp {realized_pl:+,.0f}", text_secondary, accent_color),
                 ("HOLDING TIME", f"{holding_days} Days", text_secondary, text_primary),
-                ("INITIAL SIGNAL", app_signal, text_secondary, tag_fg),
+                ("SCREENING SIGNAL", app_signal, text_secondary, tag_fg),
                 ("FINAL SCORE", f"{final_score:.1f}", text_secondary, text_primary),
                 ("TECHNICAL SCORE", f"{tech_score}/100", text_secondary, text_primary),
                 ("FLOW SCORE", f"{flow_score}/100", text_secondary, text_primary),
-                ("EXIT STRATEGY", exit_type, text_secondary, "#f59e0b")
+                ("EXIT STRATEGY", exit_type_clean, text_secondary, "#f59e0b")
             ]
         else:
             metrics = [
-                ("BUY PRICE", f"Rp {buy_price:,.0f}", text_secondary, text_primary),
-                ("SELL PRICE", f"Rp {sell_price:,.0f}", text_secondary, text_primary),
-                ("REALIZED P/L", f"Rp {realized_pl:+,.0f}", text_secondary, accent_color),
+                ("ENTRY PRICE", f"Rp {buy_price:,.0f}", text_secondary, text_primary),
+                ("EXIT PRICE", f"Rp {sell_price:,.0f}", text_secondary, text_primary),
+                ("SIMULATION P/L", f"Rp {realized_pl:+,.0f}", text_secondary, accent_color),
                 ("HOLDING TIME", f"{holding_days} Days", text_secondary, text_primary),
-                ("TP1 / TP2 TARGET", f"Rp {tp1:,.0f} / Rp {tp2:,.0f}" if (tp1 and tp2) else "N/A", text_secondary, text_primary),
+                ("TP1 / TP2 LIMIT", f"Rp {tp1:,.0f} / Rp {tp2:,.0f}" if (tp1 and tp2) else "N/A", text_secondary, text_primary),
                 ("STOP LOSS LIMIT", f"Rp {sl:,.0f}" if sl else "N/A", text_secondary, text_primary),
-                ("TP1 / TP2 HIT", f"{tp1_hit} / {tp2_hit}", text_secondary, text_primary),
+                ("TP1 / TP2 HITS", f"{tp1_hit} / {tp2_hit}", text_secondary, text_primary),
                 ("SL HIT", sl_hit, text_secondary, text_primary),
                 ("MAX GAIN / DD", f"{max_gain:+.1f}% / {max_dd:+.1f}%", text_secondary, text_primary)
             ]
@@ -389,7 +408,7 @@ def generate_share_card(trade_data: dict, template: str = "Formal Dark", size_ra
             
         # Footer
         draw.line([90, height - 140, width - 90, height - 140], fill=box_border, width=2)
-        draw.text((90, height - 100), "For tracking & evaluation only. Not financial advice.", fill=text_muted, font=font_footer)
+        draw.text((90, height - 100), "Simulation log only. Not buying/selling advice.", fill=text_muted, font=font_footer)
         draw.text((width - 340, height - 100), f"Generated: {datetime.now().strftime('%Y-%m-%d')}", fill=text_muted, font=font_footer)
 
     # 5. Save and Return Byte Stream
