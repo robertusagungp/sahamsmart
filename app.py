@@ -1368,80 +1368,129 @@ if "results" in st.session_state and st.session_state["results"]:
         st.write("Generate kartu performa visual (Share Card) formal yang elegan untuk transaksi yang sudah ditutup (*Closed Position*). Kartu ini dapat diunduh atau dikirim langsung ke grup Telegram.")
         
         df_eval_social = storage.get_trade_evaluations(st.session_state["username"])
-        df_closed_social = df_eval_social[df_eval_social['status'] == 'Closed Position'] if not df_eval_social.empty else pd.DataFrame()
         
-        if not df_closed_social.empty:
-            col_sc_sel, col_sc_act = st.columns([1, 1])
-            with col_sc_sel:
-                selected_social_id = st.selectbox(
-                    "Pilih Transaksi untuk Di-Share:",
-                    options=df_closed_social["trade_id"].tolist(),
-                    format_func=lambda x: f"{df_closed_social[df_closed_social['trade_id'] == x]['ticker'].values[0]} | ROI: {df_closed_social[df_closed_social['trade_id'] == x]['return_percentage'].values[0]:+.2f}% ({df_closed_social[df_closed_social['trade_id'] == x]['exit_type'].values[0]})",
-                    key="sel_social_trade_id"
-                )
-                
-                trade_data_social = df_closed_social[df_closed_social["trade_id"] == selected_social_id].iloc[0].to_dict()
-                
-                # Generate Share Card Image in memory
-                img_bytes = generate_share_card(trade_data_social)
-                
-                # Preview image
-                st.image(img_bytes, caption=f"Preview Share Card {trade_data_social['ticker']}", width=400)
-                
-            with col_sc_act:
-                st.subheader("📤 Aksi Bagikan Card")
-                
-                # Download button
-                st.download_button(
-                    label="📥 Unduh Gambar (PNG)",
-                    data=img_bytes,
-                    file_name=f"Smart_Saham_Exit_{trade_data_social['ticker'].split('.')[0]}.png",
-                    mime="image/png",
-                    use_container_width=True
-                )
-                
-                st.write("")
-                st.markdown("---")
-                st.write("🚀 **Kirim ke Telegram Channel / Group**")
-                
-                # Custom caption text area
-                ticker_clean = trade_data_social['ticker'].split('.')[0]
-                roi_val = trade_data_social['return_percentage']
-                roi_emoji = "🟢" if roi_val >= 0 else "🔴"
-                default_caption = f"""👑 <b>[EVALUASI CLOSED POSITION]</b> 👑
-                
-📊 Ticker: <b>#{ticker_clean}</b>
-Sinyal Awal: <b>{trade_data_social['app_signal_at_buy']}</b>
-
-📊 <b>Hasil Transaksi:</b>
-• Net Return: <b>{roi_emoji} {roi_val:+.2f}%</b>
-• Durasi Hold: <b>{trade_data_social['holding_days']} Hari</b>
-• Tipe Exit: <b>{trade_data_social['exit_type']}</b>
-
-<i>Analisis performa & evaluasi akurasi otomatis oleh Smart Saham Premium.</i>"""
-                
-                custom_caption = st.text_area(
-                    "Pesan Keterangan (Caption) Telegram:",
-                    value=default_caption.replace("                ", ""), # clean indentation tabs
-                    height=200
-                )
-                
-                # Telegram configuration inputs
-                bot_token_social = st.session_state.get("tg_bot_token", os.environ.get("TELEGRAM_BOT_TOKEN", ""))
-                chat_id_social = st.session_state.get("tg_group_id", os.environ.get("TELEGRAM_GROUP_ID", ""))
-                
-                if not bot_token_social or not chat_id_social:
-                    st.warning("⚠️ Konfigurasi Telegram Bot tidak ditemukan. Silakan isi konfigurasi bot di sidebar kiri (khusus admin 'fra') untuk mengaktifkan fitur kirim foto.")
-                else:
-                    if st.button("📤 Kirim Foto ke Telegram", use_container_width=True):
-                        with st.spinner("Mengirim gambar ke Telegram..."):
-                            success, msg = send_telegram_photo(bot_token_social, chat_id_social, img_bytes, custom_caption)
-                            if success:
-                                st.success(msg)
-                            else:
-                                st.error(msg)
+        if not df_eval_social.empty:
+            selected_social_id = st.selectbox(
+                "Pilih Transaksi untuk Di-Share:",
+                options=df_eval_social["trade_id"].tolist(),
+                format_func=lambda x: f"{df_eval_social[df_eval_social['trade_id'] == x]['ticker'].values[0]} | Status: {df_eval_social[df_eval_social['trade_id'] == x]['status'].values[0]} | ROI: {df_eval_social[df_eval_social['trade_id'] == x]['return_percentage'].values[0]:+.2f}%",
+                key="sel_social_trade_id"
+            )
+            
+            trade_data_social = df_eval_social[df_eval_social["trade_id"] == selected_social_id].iloc[0].to_dict()
+            
+            # Check if trade status is Closed Position
+            if trade_data_social["status"] != "Closed Position":
+                st.warning("⚠️ Trade belum exit, share card final belum bisa dibuat.")
+            else:
+                col_sc_sel, col_sc_act = st.columns([1, 1])
+                with col_sc_sel:
+                    # Template and Size ratio selectors
+                    social_template = st.selectbox(
+                        "Pilih Desain Template:",
+                        options=["Formal Dark", "Formal Light", "Executive Summary"]
+                    )
+                    
+                    social_ratio = st.selectbox(
+                        "Pilih Ukuran Gambar (Rasio):",
+                        options=["1080x1080 (Square Instagram Feed)", "1080x1920 (Instagram Story)", "1200x628 (Telegram Preview)"]
+                    )
+                    
+                    ratio_value = "1080x1080"
+                    if "1920" in social_ratio:
+                        ratio_value = "1080x1920"
+                    elif "628" in social_ratio:
+                        ratio_value = "1200x628"
+                        
+                    # Generate Pillow Share Card in memory
+                    img_bytes = generate_share_card(trade_data_social, template=social_template, size_ratio=ratio_value)
+                    
+                    # Preview rendering
+                    st.markdown("**Pratinjau Hasil Gambar:**")
+                    if ratio_value == "1080x1920":
+                        st.image(img_bytes, caption="Story Preview", width=260)
+                    elif ratio_value == "1200x628":
+                        st.image(img_bytes, caption="Telegram Preview", width=420)
+                    else:
+                        st.image(img_bytes, caption="Feed Square Preview", width=350)
+                        
+                with col_sc_act:
+                    st.subheader("📤 Aksi & Pembagian Laporan")
+                    
+                    # Download button
+                    st.download_button(
+                        label="📥 Unduh Gambar Share Card (PNG)",
+                        data=img_bytes,
+                        file_name=f"SmartSaham_Exit_{trade_data_social['ticker'].split('.')[0]}_{ratio_value}.png",
+                        mime="image/png",
+                        use_container_width=True
+                    )
+                    
+                    st.write("")
+                    st.markdown("---")
+                    st.write("🚀 **Kirim ke Telegram Channel / Group**")
+                    
+                    # Setup Auto-Caption
+                    ticker_clean = trade_data_social['ticker'].split('.')[0]
+                    roi_val = trade_data_social['return_percentage']
+                    buy_val = trade_data_social['buy_price']
+                    sell_val = trade_data_social['sell_price']
+                    hold_days = trade_data_social['holding_days']
+                    sig_buy = trade_data_social['app_signal_at_buy']
+                    f_score = trade_data_social['final_score_at_buy']
+                    tp1_h = "Yes" if trade_data_social.get('tp1_hit') else "No"
+                    sl_h = "Yes" if trade_data_social.get('sl_hit') else "No"
+                    exit_reason_text = trade_data_social.get('sell_reason', 'Manual Sell') if trade_data_social.get('sell_reason') else 'Manual Sell'
+                    
+                    if roi_val >= 0:
+                        default_caption = f"""Trade Closed: {ticker_clean}
+Result: +{roi_val:.2f}%
+Buy: {buy_val:,.0f}
+Sell: {sell_val:,.0f}
+Holding: {hold_days} days
+Signal at Buy: {sig_buy}
+Final Score: {f_score:.1f}
+TP1 Hit: {tp1_h}
+SL Hit: {sl_h}
+Generated by Smart Saham Premium.
+For tracking & evaluation only. Not financial advice."""
+                    else:
+                        default_caption = f"""Trade Closed: {ticker_clean}
+Result: {roi_val:.2f}%
+Buy: {buy_val:,.0f}
+Sell: {sell_val:,.0f}
+Holding: {hold_days} days
+Signal at Buy: {sig_buy}
+Final Score: {f_score:.1f}
+Exit Reason: {exit_reason_text}
+Generated by Smart Saham Premium.
+For tracking & evaluation only. Not financial advice."""
+                        
+                    custom_caption = st.text_area(
+                        "Kustomisasi Pesan Caption (Bisa diedit/copas):",
+                        value=default_caption,
+                        height=230
+                    )
+                    
+                    # Telegram credentials fetch
+                    bot_token_social = st.session_state.get("tg_bot_token", os.environ.get("TELEGRAM_BOT_TOKEN", ""))
+                    chat_id_social = st.session_state.get("tg_group_id", os.environ.get("TELEGRAM_GROUP_ID", ""))
+                    
+                    if not bot_token_social or not chat_id_social:
+                        st.warning("⚠️ Konfigurasi Telegram Bot belum lengkap di sidebar kiri (khusus admin 'fra') untuk mengirim langsung.")
+                    else:
+                        if st.button("📤 Kirim Foto + Caption ke Telegram", use_container_width=True):
+                            with st.spinner("Mengirim gambar ke Telegram..."):
+                                success, msg = send_telegram_photo(bot_token_social, chat_id_social, img_bytes, custom_caption)
+                                if success:
+                                    st.success(msg)
+                                else:
+                                    st.error(msg)
+                                    
+                    st.write("")
+                    st.info("💡 **Tips Instagram Sharing**: Salin teks caption di atas, unduh gambar PNG di sebelah kiri, lalu unggah secara manual atau gunakan penjadwalan favorit Anda.")
         else:
-            st.info("💡 Belum ada posisi portofolio yang ditutup (Closed Position). Anda dapat melakukan penjualan posisi aktif terlebih dahulu di tab **💼 Portfolio & Accuracy** untuk mencatatkan data exit.")
+            st.info("💡 Belum ada posisi portofolio yang terdaftar. Anda dapat mencatat transaksi pertama Anda di tab **💼 Portfolio & Accuracy**.")
 
     if is_admin:
         with tab_activities:
