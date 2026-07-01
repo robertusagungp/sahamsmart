@@ -535,9 +535,27 @@ if "results" in st.session_state and st.session_state["results"]:
     is_admin = st.session_state["username"] == "fra"
     
     if is_admin:
-        tab_screener, tab_history, tab_portfolio, tab_social, tab_activities = st.tabs(["📊 Screener & Ranking", "📜 Histori Rekomendasi", "💼 Portfolio & Accuracy", "📢 Social Report", "🔐 Audit Aktivitas User (Neon DB)"])
+        tabs = st.tabs([
+            "📊 Screener & Ranking", 
+            "📜 Histori Rekomendasi", 
+            "💼 Simulasi & Log Portofolio", 
+            "📢 Social Report", 
+            "🔐 Audit Aktivitas User (Neon DB)"
+        ])
+        tab_screener = tabs[0]
+        tab_history = tabs[1]
+        tab_portfolio = tabs[2]
+        tab_social = tabs[3]
+        tab_activities = tabs[4]
     else:
-        tab_screener, tab_history, tab_portfolio, tab_social = st.tabs(["📊 Screener & Ranking", "📜 Histori Rekomendasi", "💼 Portfolio & Accuracy", "📢 Social Report"])
+        tabs = st.tabs([
+            "📊 Screener & Ranking", 
+            "💼 Simulasi & Log Portofolio", 
+            "📢 Social Report"
+        ])
+        tab_screener = tabs[0]
+        tab_portfolio = tabs[1]
+        tab_social = tabs[2]
     
     with tab_screener:
         # Highlights Metrics Layout
@@ -929,30 +947,31 @@ if "results" in st.session_state and st.session_state["results"]:
                     risk_color = "#f87171" if "[Sistem]" not in risk else "#60a5fa"
                     st.markdown(f"**•** <span style='color:{risk_color}'>{risk}</span>", unsafe_allow_html=True)
                     
-    with tab_history:
-        st.subheader("📜 Log Riwayat Analisis Harian")
-        st.write("Histori data screening harian yang tercatat di database online Neon DB / database SQLite lokal.")
-        
-        try:
-            df_logs = storage.load_historical_logs(limit=250)
-            if not df_logs.empty:
-                df_logs['tanggal'] = pd.to_datetime(df_logs['tanggal']).dt.date
-                df_logs = df_logs.rename(columns={
-                    'tanggal': 'Tanggal', 'ticker': 'Ticker', 'close_price': 'Harga Close',
-                    'rsi': 'RSI', 'ma20': 'MA 20', 'ma50': 'MA 50', 'momentum_1m': 'Momentum 1M',
-                    'momentum_3m': 'Momentum 3M', 'volume_ratio': 'Vol Ratio', 'score': 'Skor',
-                    'recommendation': 'Rekomendasi'
-                })
-                st.dataframe(df_logs, use_container_width=True, hide_index=True)
-            else:
-                st.info("Log database masih kosong. Jalankan screening baru di sidebar untuk mengisi database.")
-        except Exception as e:
-            st.error(f"Gagal memuat log data dari database: {str(e)}")
+    if is_admin:
+        with tab_history:
+            st.subheader("📜 Log Riwayat Analisis Harian")
+            st.write("Histori data screening harian yang tercatat di database online Neon DB / database SQLite lokal.")
+            
+            try:
+                df_logs = storage.load_historical_logs(limit=250)
+                if not df_logs.empty:
+                    df_logs['tanggal'] = pd.to_datetime(df_logs['tanggal']).dt.date
+                    df_logs = df_logs.rename(columns={
+                        'tanggal': 'Tanggal', 'ticker': 'Ticker', 'close_price': 'Harga Close',
+                        'rsi': 'RSI', 'ma20': 'MA 20', 'ma50': 'MA 50', 'momentum_1m': 'Momentum 1M',
+                        'momentum_3m': 'Momentum 3M', 'volume_ratio': 'Vol Ratio', 'score': 'Skor',
+                        'recommendation': 'Rekomendasi'
+                    })
+                    st.dataframe(df_logs, use_container_width=True, hide_index=True)
+                else:
+                    st.info("Log database masih kosong. Jalankan screening baru di sidebar untuk mengisi database.")
+            except Exception as e:
+                st.error(f"Gagal memuat log data dari database: {str(e)}")
             
 
     with tab_portfolio:
-        st.header("💼 Watchlist & Tracking Portofolio Riil")
-        st.write("Pantau saham yang Anda masukkan ke watchlist atau yang benar-benar Anda beli di pasar riil untuk mengevaluasi tingkat akurasi sinyal aplikasi.")
+        st.header("💼 Simulasi & Log Pemantauan Portofolio Mandiri")
+        st.write("Fitur ini dirancang bagi pengguna untuk melakukan log simulasi, melacak keputusan mandiri, serta mengevaluasi secara objektif akurasi screening platform. Catatan ini murni merupakan log transaksi mandiri pengguna untuk pemantauan risiko personal.")
         
         # 1. Automatic/Manual Evaluation Trigger on load
         if "portfolio_evaluated" not in st.session_state:
@@ -970,7 +989,7 @@ if "results" in st.session_state and st.session_state["results"]:
         df_eval = storage.get_trade_evaluations(st.session_state["username"])
         
         # 2. ADD TO WATCHLIST OR REAL BUY FORM
-        st.subheader("➕ Tambah Data Sinyal (Watchlist / Real Buy)")
+        st.subheader("➕ Catat Log Transaksi Mandiri (Simulasi / Pantauan Riil)")
         col_add1, col_add2 = st.columns(2)
         with col_add1:
             screened_tickers_list = [r["ticker"] for r in results] if "results" in st.session_state else []
@@ -1026,12 +1045,12 @@ if "results" in st.session_state and st.session_state["results"]:
                                 st.toast(f"✅ {selected_add_ticker} ditambahkan ke Watchlist!", icon="⭐")
                                 st.rerun()
                     with col_btn_add2:
-                        with st.expander("💸 Mark as Real Buy Details", expanded=False):
+                        with st.expander("💸 Catat Log Pembelian Mandiri (Simulasi/Riil)", expanded=False):
                             buy_date_input = st.date_input("Tanggal Beli:", date.today())
                             buy_price_input = st.number_input("Harga Beli (Rp):", value=float(ticker_score_data.get('close_price', 0)), step=10.0)
                             lot_qty_input = st.number_input("Jumlah Lot:", value=1, min_value=1, step=1)
                             
-                            if st.button("💸 Catat Real Buy", use_container_width=True):
+                            if st.button("💸 Simpan Catatan Pembelian", use_container_width=True):
                                 saved_trade = storage.add_real_trade(
                                     st.session_state["username"],
                                     selected_add_ticker,
@@ -1042,7 +1061,7 @@ if "results" in st.session_state and st.session_state["results"]:
                                     user_notes_add
                                 )
                                 if saved_trade:
-                                    st.toast(f"💸 Posisi Beli {selected_add_ticker} berhasil dicatat!", icon="✅")
+                                    st.toast(f"💸 Log Pembelian Mandiri {selected_add_ticker} berhasil dicatat!", icon="✅")
                                     if "portfolio_evaluated" in st.session_state:
                                         del st.session_state["portfolio_evaluated"]
                                     st.rerun()
@@ -1078,20 +1097,20 @@ if "results" in st.session_state and st.session_state["results"]:
         df_closed = df_eval[df_eval['status'] == 'Closed Position'] if not df_eval.empty else pd.DataFrame()
         
         st.markdown('<div class="header-divider"></div>', unsafe_allow_html=True)
-        st.subheader("💼 Portofolio Terbuka (Open Positions)")
+        st.subheader("💼 Simulasi Posisi Terbuka (Open Positions)")
         
         if not df_open.empty:
             df_open_disp = pd.DataFrame({
                 "ID": df_open["trade_id"],
                 "Ticker": df_open["ticker"],
-                "Tanggal Beli": df_open["buy_date"],
-                "Harga Beli": df_open["buy_price"].apply(lambda x: f"Rp {x:,.0f}"),
+                "Tanggal Entry": df_open["buy_date"],
+                "Harga Entry": df_open["buy_price"].apply(lambda x: f"Rp {x:,.0f}"),
                 "Lot": df_open["lot_quantity"],
-                "Modal Awal": df_open["total_value"].apply(lambda x: f"Rp {x:,.0f}"),
+                "Simulasi Modal": df_open["total_value"].apply(lambda x: f"Rp {x:,.0f}"),
                 "Harga Saat Ini": df_open["current_price"].apply(lambda x: f"Rp {x:,.0f}" if pd.notna(x) else "N/A"),
                 "Unrealized P/L": df_open["unrealized_profit_loss"].apply(lambda x: f"Rp {x:+,.0f}" if pd.notna(x) else "N/A"),
                 "Return (%)": df_open["return_percentage"].apply(lambda x: f"{x:+.2f}%" if pd.notna(x) else "N/A"),
-                "Sinyal Beli": df_open["app_signal_at_buy"],
+                "Sinyal Screening": df_open["app_signal_at_buy"].apply(clean_signal_name),
                 "TP1 / TP2": df_open.apply(lambda r: f"Rp {r['tp1_at_buy']:,} / Rp {r['tp2_at_buy']:,}", axis=1),
                 "Stop Loss": df_open["sl_at_buy"].apply(lambda x: f"Rp {x:,.0f}"),
                 "Holding Days": df_open["holding_days"],
@@ -1101,22 +1120,22 @@ if "results" in st.session_state and st.session_state["results"]:
             
             # --- MARK AS SELL / EXIT FORM ---
             st.write("")
-            with st.expander("🚪 Catat Penjualan Saham / Exit Posisi Terbuka", expanded=False):
+            with st.expander("🚪 Catat Keluar Posisi / Simulasi Exit", expanded=False):
                 col_exit1, col_exit2 = st.columns(2)
                 with col_exit1:
                     exit_trade_id = st.selectbox(
                         "Pilih Posisi Terbuka:",
                         options=df_open["trade_id"].tolist(),
-                        format_func=lambda x: f"{df_open[df_open['trade_id'] == x]['ticker'].values[0]} (Beli di Rp {df_open[df_open['trade_id'] == x]['buy_price'].values[0]:,})"
+                        format_func=lambda x: f"{df_open[df_open['trade_id'] == x]['ticker'].values[0]} (Entry di Rp {df_open[df_open['trade_id'] == x]['buy_price'].values[0]:,})"
                     )
-                    sell_date_input = st.date_input("Tanggal Jual:", date.today(), key="sell_date_inp")
-                    sell_price_input = st.number_input("Harga Jual (Rp):", min_value=1.0, step=10.0, key="sell_price_inp")
+                    sell_date_input = st.date_input("Tanggal Exit:", date.today(), key="sell_date_inp")
+                    sell_price_input = st.number_input("Harga Exit (Rp):", min_value=1.0, step=10.0, key="sell_price_inp")
                 with col_exit2:
                     exit_type_input = st.selectbox(
                         "Tipe Exit / Penjualan:",
-                        options=["Take Profit 1 Hit", "Take Profit 2 Hit", "Stop Loss Hit", "Manual Sell", "Time-based Exit", "Signal Turned Avoid", "Other"]
+                        options=["Target Profit 1 Tercapai", "Target Profit 2 Tercapai", "Stop Loss Terlewati", "Exit Mandiri", "Batas Waktu Simulasi", "Sinyal Berubah", "Lainnya"]
                     )
-                    sell_reason_input = st.text_input("Alasan Jual (Opsional):", "")
+                    sell_reason_input = st.text_input("Alasan Exit (Opsional):", "")
                     
                     if st.button("🚪 Simpan Exit Posisi", use_container_width=True):
                         sold = storage.sell_real_trade(
@@ -1136,7 +1155,7 @@ if "results" in st.session_state and st.session_state["results"]:
             
         # 5. PERFORMANCE AND ACCURACY DASHBOARD SUMMARY
         st.markdown('<div class="header-divider"></div>', unsafe_allow_html=True)
-        st.subheader("📈 Analisis Performa & Akurasi Sinyal")
+        st.subheader("📈 Analisis Performa & Akurasi Screening")
         
         if not df_eval.empty:
             total_real_buy = len(df_eval)
