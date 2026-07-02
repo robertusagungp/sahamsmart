@@ -381,8 +381,8 @@ if not st.session_state["logged_in"]:
         st.markdown("<br><br>", unsafe_allow_html=True)
         
         # 7. Free Signal Preview (3 Free Stocks)
-        st.subheader("🎁 Sinyal Gratis Hari Ini (Hook Preview)")
-        st.markdown("<p style='color:#94a3b8; margin-top:-10px;'>Berikut adalah 3 saham dengan score tertinggi hari ini secara gratis:</p>", unsafe_allow_html=True)
+        st.subheader("🎁 Contoh Hasil Analisis Saham Hari Ini")
+        st.markdown("<p style='color:#94a3b8; margin-top:-10px;'>Berikut adalah contoh 3 saham dengan hasil screening score tertinggi hari ini sebagai referensi penelitian mandiri:</p>", unsafe_allow_html=True)
         
         preview_tabs = st.tabs(["📊 Swing Trade: BBRI", "⏱️ Scalping: ADRO", "🏢 Investasi: BBCA"])
         with preview_tabs[0]:
@@ -400,11 +400,11 @@ if not st.session_state["logged_in"]:
             with col_bbri2:
                 st.markdown("""
                 <div class="glass-card" style="border-left: 5px solid #3b82f6; min-height: 250px;">
-                    <h4 style="margin-top:0; color:#3b82f6;">Detail Setup Analisis:</h4>
-                    <p style="margin:6px 0;"><b>Entry Area:</b> Rp 4,450 - Rp 4,550</p>
-                    <p style="margin:6px 0;"><b>Target Profit 1 (TP1):</b> Rp 4,800</p>
-                    <p style="margin:6px 0;"><b>Target Profit 2 (TP2):</b> Rp 5,100</p>
-                    <p style="margin:6px 0;"><b>Stop Loss (SL):</b> Rp 4,300</p>
+                    <h4 style="margin-top:0; color:#3b82f6;">Acuan Parameter Analisis:</h4>
+                    <p style="margin:6px 0;"><b>Area Pantau (Support/Pullback):</b> Rp 4,450 - Rp 4,550</p>
+                    <p style="margin:6px 0;"><b>Resistansi Terdekat (Target Area):</b> Rp 4,800</p>
+                    <p style="margin:6px 0;"><b>Resistansi Lanjutan:</b> Rp 5,100</p>
+                    <p style="margin:6px 0;"><b>Batas Invalidation Terdekat:</b> Rp 4,300</p>
                     <p style="margin:6px 0; font-size:0.85rem; color:#cbd5e1;"><b>Reasoning:</b> Volume transaksi harian stabil di atas rata-rata diiringi akumulasi asing beruntun 5 hari terakhir di area support kuat MA50.</p>
                 </div>
                 """, unsafe_allow_html=True)
@@ -424,11 +424,11 @@ if not st.session_state["logged_in"]:
             with col_adro2:
                 st.markdown("""
                 <div class="glass-card" style="border-left: 5px solid #3b82f6; min-height: 250px;">
-                    <h4 style="margin-top:0; color:#3b82f6;">Detail Setup Analisis:</h4>
-                    <p style="margin:6px 0;"><b>Entry Area:</b> Rp 2,680 - Rp 2,700</p>
-                    <p style="margin:6px 0;"><b>Target Profit 1 (TP1):</b> Rp 2,740 (1.5%)</p>
-                    <p style="margin:6px 0;"><b>Target Profit 2 (TP2):</b> Rp 2,780 (3.0%)</p>
-                    <p style="margin:6px 0;"><b>Stop Loss (SL):</b> Rp 2,640 (-1.5%)</p>
+                    <h4 style="margin-top:0; color:#3b82f6;">Acuan Parameter Analisis:</h4>
+                    <p style="margin:6px 0;"><b>Area Pantau (Intraday):</b> Rp 2,680 - Rp 2,700</p>
+                    <p style="margin:6px 0;"><b>Target Resistansi Intraday 1:</b> Rp 2,740</p>
+                    <p style="margin:6px 0;"><b>Target Resistansi Intraday 2:</b> Rp 2,780</p>
+                    <p style="margin:6px 0;"><b>Batas Risiko Intraday (Cut Loss):</b> Rp 2,640</p>
                     <p style="margin:6px 0; font-size:0.85rem; color:#cbd5e1;"><b>Reasoning:</b> Lonjakan volume transaksi intraday terdeteksi 2.2x rata-rata dengan harga bergerak konsisten di atas VWAP intraday.</p>
                 </div>
                 """, unsafe_allow_html=True)
@@ -448,10 +448,10 @@ if not st.session_state["logged_in"]:
             with col_bbca2:
                 st.markdown("""
                 <div class="glass-card" style="border-left: 5px solid #3b82f6; min-height: 250px;">
-                    <h4 style="margin-top:0; color:#3b82f6;">Detail Setup Analisis:</h4>
-                    <p style="margin:6px 0;"><b>Fair Value Range:</b> Rp 9,400 - Rp 10,800</p>
-                    <p style="margin:6px 0;"><b>Margin of Safety (MOS):</b> +6.5%</p>
-                    <p style="margin:6px 0;"><b>Governance Risk:</b> Low (Baik)</p>
+                    <h4 style="margin-top:0; color:#3b82f6;">Pemetaan Estimasi Nilai Wajar:</h4>
+                    <p style="margin:6px 0;"><b>Estimasi Rentang Nilai Wajar:</b> Rp 9,400 - Rp 10,800</p>
+                    <p style="margin:6px 0;"><b>Margin Keamanan (MOS Estimasi):</b> +6.5%</p>
+                    <p style="margin:6px 0;"><b>Profil Risiko Governance:</b> Low</p>
                     <p style="margin:6px 0; font-size:0.85rem; color:#cbd5e1;"><b>Reasoning:</b> Profitabilitas ROE prima (21.5%) dan DER rendah. Harga saat ini berada di bawah rentang nilai intrinsik dengan margin aman positif.</p>
                 </div>
                 """, unsafe_allow_html=True)
@@ -598,11 +598,16 @@ with col_header_user:
 
 st.markdown('<div class="header-divider"></div>', unsafe_allow_html=True)
 
-# Create Sidebar configurations
-with st.sidebar:
-    st.header("⚙️ Konfigurasi Screener")
-    
-    # Sector and Custom presets in the sidebar
+# Create Top configurations layout instead of sidebar
+st.markdown("""
+<div class="glass-card" style="padding: 16px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(59, 130, 246, 0.15);">
+    <h4 style="margin-top:0; margin-bottom:12px; color:#60a5fa; font-weight:700;">⚙️ Panel Konfigurasi & Filter Screening</h4>
+</div>
+""", unsafe_allow_html=True)
+
+# Grid Layout for Options
+col_cfg1, col_cfg2, col_cfg3 = st.columns([1.2, 1.2, 0.8])
+with col_cfg1:
     selected_preset = st.selectbox(
         "🎯 Preset Kategori Saham:",
         options=[
@@ -622,108 +627,109 @@ with st.sidebar:
             "Sektor Industrials",
             "Sektor Properties & Real Estate",
             "Sektor Transportation & Logistics"
-        ]
+        ],
+        help="Pilih kelompok preset saham yang ingin Anda saring datanya."
     )
+with col_cfg2:
+    selected_mode = st.selectbox(
+        "📈 Mode Analisis Saham:",
+        options=["Swing Trading Mode", "Scalping Mode (Beta)", "Investment Mode"],
+        help="Memilih model analisa, horizon investasi, parameter scoring, dan visualisasi dashboard."
+    )
+with col_cfg3:
+    history_period = st.selectbox(
+        "Rentang Waktu Historis",
+        options=["6mo", "1y", "2y"],
+        index=1,
+        help="Menentukan panjang data historis harian yang ditarik dari yfinance."
+    )
+
+selected_tickers = []
+
+if selected_preset == "Kustom (Pilih Manual)":
+    selected_tickers = st.multiselect(
+        "Pilih Saham (Bisa multi-select):",
+        options=list(IDX_STOCKS.keys()),
+        default=["BBCA.JK", "BBRI.JK", "BMRI.JK", "TLKM.JK", "ASII.JK", "UNVR.JK", "GOTO.JK"],
+        format_func=lambda x: f"{x.split('.')[0]} - {IDX_STOCKS.get(x, x)}"
+    )
+elif selected_preset == "Ketik Ticker Manual":
+    ticker_input = st.text_input("Ketik ticker saham (pisahkan dengan koma):", "BBNI, ANTM, PTBA")
+    tickers_list = [t.strip().upper() for t in ticker_input.split(",") if t.strip()]
+    formatted_tickers = []
+    for t in tickers_list:
+        if not t.endswith(".JK"):
+            t = f"{t}.JK"
+        formatted_tickers.append(t)
+    selected_tickers = formatted_tickers
+elif selected_preset == "Semua Saham IDX (820+ Emiten)":
+    selected_tickers = list(IDX_STOCKS.keys())
+    st.warning("⚠️ Menganalisis 820+ saham sekaligus memerlukan waktu sekitar 1-2 menit. Klik tombol Jalankan Analisis di bawah.")
+elif selected_preset == "Saham Syariah (JII70 - Liquid)":
+    selected_tickers = [t for t in IDX_JII70_TICKERS if t in IDX_STOCKS]
+    st.info(f"Terpilih {len(selected_tickers)} saham syariah likuid (Jakarta Islamic Index 70).")
+elif selected_preset == "Semua Saham Syariah (600+ Emiten)":
+    df_stocks_db = load_stock_database_df()
+    sharia_df = df_stocks_db[df_stocks_db.apply(lambda r: is_sharia_compliant(r['ticker'], r['name']), axis=1)]
+    selected_tickers = sharia_df['ticker'].tolist()
+    st.warning(f"⚠️ Terpilih {len(selected_tickers)} saham syariah di IDX. Menganalisis kelompok besar ini memerlukan waktu ~1 menit. Klik tombol di bawah.")
+else:
+    sector_name = selected_preset.replace("Sektor ", "")
+    if "(" in sector_name and ")" in sector_name:
+        sector_name = sector_name.split("(")[1].split(")")[0]
     
-    selected_tickers = []
-    
-    if selected_preset == "Kustom (Pilih Manual)":
-        # Multi-select using the dynamic IDX stock list
-        selected_tickers = st.multiselect(
-            "Pilih Saham (Bisa multi-select)",
-            options=list(IDX_STOCKS.keys()),
-            default=["BBCA.JK", "BBRI.JK", "BMRI.JK", "TLKM.JK", "ASII.JK", "UNVR.JK", "GOTO.JK"],
-            format_func=lambda x: f"{x.split('.')[0]} - {IDX_STOCKS.get(x, x)}"
-        )
-    elif selected_preset == "Ketik Ticker Manual":
-        st.info("Ketik ticker saham Indonesia di bawah (pisahkan dengan koma jika lebih dari satu).")
-        ticker_input = st.text_input("Contoh: BBNI, ANTM, PTBA", "BBNI, ANTM, PTBA")
-        tickers_list = [t.strip().upper() for t in ticker_input.split(",") if t.strip()]
-        formatted_tickers = []
-        for t in tickers_list:
-            if not t.endswith(".JK"):
-                t = f"{t}.JK"
-            formatted_tickers.append(t)
-        selected_tickers = formatted_tickers
-    elif selected_preset == "Semua Saham IDX (820+ Emiten)":
-        selected_tickers = list(IDX_STOCKS.keys())
-        st.warning("⚠️ Menganalisis 820+ saham sekaligus memerlukan waktu sekitar 1-2 menit. Klik tombol Refresh di bawah.")
-    elif selected_preset == "Saham Syariah (JII70 - Liquid)":
-        selected_tickers = [t for t in IDX_JII70_TICKERS if t in IDX_STOCKS]
-        st.info(f"Terpilih {len(selected_tickers)} saham syariah likuid (Jakarta Islamic Index 70).")
-    elif selected_preset == "Semua Saham Syariah (600+ Emiten)":
-        df_stocks_db = load_stock_database_df()
-        # Apply programmatic Sharia compliance filter
-        sharia_df = df_stocks_db[df_stocks_db.apply(lambda r: is_sharia_compliant(r['ticker'], r['name']), axis=1)]
-        selected_tickers = sharia_df['ticker'].tolist()
-        st.warning(f"⚠️ Terpilih {len(selected_tickers)} saham syariah di IDX. Menganalisis kelompok besar ini memerlukan waktu ~1 menit. Klik tombol di bawah.")
-    else:
-        # Extract English name inside parenthesis if exists, otherwise use name directly
-        sector_name = selected_preset.replace("Sektor ", "")
-        if "(" in sector_name and ")" in sector_name:
-            sector_name = sector_name.split("(")[1].split(")")[0]
-        
-        df_stocks_db = load_stock_database_df()
-        df_sector = df_stocks_db[df_stocks_db['sector'] == sector_name]
-        selected_tickers = df_sector['ticker'].tolist()
-        st.info(f"Terpilih {len(selected_tickers)} saham di {selected_preset}.")
-        
-    st.write("")
-    
-    # Custom interactive addition box
-    custom_add = st.text_input("Tambah Ticker Tambahan (Contoh: BRMS)", "")
+    df_stocks_db = load_stock_database_df()
+    df_sector = df_stocks_db[df_stocks_db['sector'] == sector_name]
+    selected_tickers = df_sector['ticker'].tolist()
+    st.info(f"Terpilih {len(selected_tickers)} saham di {selected_preset}.")
+
+# Row for custom add & action trigger
+col_act1, col_act2 = st.columns([1.5, 1])
+with col_act1:
+    custom_add = st.text_input("Tambah Ticker Saham Tambahan secara Manual (Contoh: BRMS):", "")
     if custom_add:
         t_add = custom_add.strip().upper()
         if not t_add.endswith(".JK"):
             t_add = f"{t_add}.JK"
         if t_add not in selected_tickers:
             selected_tickers.append(t_add)
+with col_act2:
+    st.write("")
+    st.write("")
+    run_analysis = st.button("🔄 Jalankan & Simpan Analisis Baru", use_container_width=True, type="primary")
 
-    # Rentang data historis
-    history_period = st.selectbox(
-        "Rentang Waktu Historis",
-        options=["6mo", "1y", "2y"],
-        index=1,
-        help="Menentukan data historis yang ditarik dari yfinance."
-    )
-    
-    # Mode Analisa Selector (Scalping, Swing, Investment)
-    st.markdown("---")
-    selected_mode = st.radio(
-        "📈 Mode Analisis Saham:",
-        options=["Swing Trading Mode", "Scalping Mode (Beta)", "Investment Mode"],
-        help="Memilih model analisa, Horizon investasi, parameter scoring, dan visualisasi dashboard."
-    )
-    
-    st.markdown("---")
-    st.markdown("🌐 **Database Sync Status**")
-    if db_url:
-        st.success("Terkoneksi ke Neon DB Cloud")
-    else:
-        st.info("Koneksi Database: Lokal (SQLite/CSV)")
+# Telegram & DB configurations (Collapsible Expander)
+tg_bot_token = ""
+tg_chat_id = ""
+auto_send_buy = False
 
-    # Initialize Telegram variables with defaults to avoid NameError for non-admins
-    tg_bot_token = ""
-    tg_chat_id = ""
-    auto_send_buy = False
+try:
+    tg_bot_token = st.secrets.get("TELEGRAM_BOT_TOKEN", "")
+    tg_chat_id = st.secrets.get("TELEGRAM_CHAT_ID", "")
+except Exception:
+    pass
     
-    try:
-        tg_bot_token = st.secrets.get("TELEGRAM_BOT_TOKEN", "")
-        tg_chat_id = st.secrets.get("TELEGRAM_CHAT_ID", "")
-    except Exception:
-        pass
-        
-    is_admin = st.session_state["username"] == "fra"
-    
-    if is_admin:
-        # Telegram Bot configuration expander in sidebar (Admin Only)
-        with st.expander("🔔 Konfigurasi Telegram Bot", expanded=False):
-            st.write("Push alert sinyal saham langsung ke grup/channel Telegram Anda.")
-            tg_bot_token = st.text_input("Bot Token", value=tg_bot_token, type="password", help="API Token Bot Telegram Anda")
-            tg_chat_id = st.text_input("Group/Chat ID", value=tg_chat_id, placeholder="Contoh: -100123456789", help="ID Grup/Channel dengan tanda (-) di depan")
-            auto_send_buy = st.checkbox("Auto-Send Sinyal Watchlist Prioritas", value=False, help="Kirim otomatis ke Telegram jika screening mendeteksi sinyal Watchlist Prioritas")
+is_admin = st.session_state["username"] == "fra"
 
-    run_analysis = st.button("🔄 Jalankan & Simpan Analisis Baru", use_container_width=True)
+with st.expander("⚙️ Pengaturan Lanjutan (Status DB & Telegram Bot Alert)", expanded=False):
+    col_adv1, col_adv2 = st.columns(2)
+    with col_adv1:
+        st.markdown("🌐 **Status Sinkronisasi Database**")
+        if db_url:
+            st.success("Terkoneksi ke Neon DB Cloud (PostgreSQL)")
+        else:
+            st.info("Koneksi Database: Lokal (SQLite/CSV)")
+    with col_adv2:
+        if is_admin:
+            st.markdown("🔔 **Konfigurasi Telegram Bot (Admin Only)**")
+            tg_bot_token = st.text_input("Bot Token", value=tg_bot_token, type="password", help="API Token Bot Telegram")
+            tg_chat_id = st.text_input("Group/Chat ID", value=tg_chat_id, placeholder="Contoh: -100123456789")
+            auto_send_buy = st.checkbox("Auto-Send Sinyal Watchlist Prioritas", value=False)
+        else:
+            st.markdown("🔔 **Konfigurasi Telegram Bot**")
+            st.info("Hanya akun admin ('fra') yang dapat memodifikasi konfigurasi Telegram Bot.")
+
+st.markdown("---")
 
 # ----------------- CONTROLLER / STOCK PROCESSING PIPELINE -----------------
 
