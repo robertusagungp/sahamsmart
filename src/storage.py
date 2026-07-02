@@ -190,25 +190,20 @@ class AnalysisStorage:
                 with self.engine.begin() as conn:
                     conn.execute(text("SELECT role FROM users LIMIT 1"))
             except Exception:
-                try:
-                    from sqlalchemy import text
-                    with self.engine.begin() as conn:
-                        # Attempt to add columns one by one to prevent migration crashes
-                        try:
-                            conn.execute(text("ALTER TABLE users ADD COLUMN plan VARCHAR(30) DEFAULT 'Smart Saham All Access'"))
-                        except Exception:
-                            pass
-                        try:
-                            conn.execute(text("ALTER TABLE users ADD COLUMN active_mode VARCHAR(50) DEFAULT 'Swing Trading Mode'"))
-                        except Exception:
-                            pass
-                        try:
-                            conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'customer'"))
-                        except Exception:
-                            pass
-                        print("Migration: users table columns updated successfully.")
-                except Exception as ex:
-                    print(f"Migration warning for users table columns: {ex}")
+                # Run each ALTER query in a SEPARATE transaction to handle PostgreSQL transaction aborts safely!
+                for col_name, sql_type, default_val in [
+                    ("plan", "VARCHAR(30)", "'Smart Saham Radar Free'"),
+                    ("active_mode", "VARCHAR(50)", "'Swing Trading Mode'"),
+                    ("role", "VARCHAR(20)", "'customer'")
+                ]:
+                    try:
+                        from sqlalchemy import text
+                        with self.engine.begin() as conn:
+                            conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {sql_type} DEFAULT {default_val}"))
+                            print(f"Migration: Column '{col_name}' added to users table.")
+                    except Exception as ex:
+                        # Ignore if already exists
+                        pass
 
             # Run persistent data migration (update admin roles and convert plan values)
             try:
