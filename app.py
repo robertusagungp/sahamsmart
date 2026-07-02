@@ -609,10 +609,27 @@ if "results" in st.session_state and st.session_state["results"]:
         tab_social = tabs[2]
     
     with tab_screener:
+        # Helper to map signal to regulatory-friendly Indonesian terms
+        def clean_signal_name(sig):
+            sig_clean = sig.strip()
+            if sig_clean in ["Watchlist Prioritas", "BUY", "Scalping Prioritas", "Swing Prioritas", "Investasi Prioritas"]:
+                return "Watchlist Prioritas"
+            elif sig_clean in ["Wait and See", "HOLD / WATCH", "HOLD", "WATCH", "Wait and See (Scalping)", "Wait and See (Swing)", "Wait and See (Investasi)"]:
+                return "Wait and See"
+            return "Keluar dari Watchlist"
+
+        # Mode Info Banner
+        if selected_mode == "Scalping Mode (Beta)":
+            st.info("⏱️ **Mode Scalping (Sinyal Intraday)**\n\n*Mode ini dirancang untuk perdagangan jangka sangat pendek (hitungan menit s/d 1 hari). Fokus analisis berada pada volume transaksi intraday harian, pergerakan harga relatif terhadap VWAP, indikator momentum cepat (EMA9 & EMA21), dan likuiditas kedalaman Bid-Ask Order Book.*")
+        elif selected_mode == "Investment Mode":
+            st.info("🏢 **Mode Investasi (Fundamental Jangka Panjang)**\n\n*Mode ini dirancang untuk akumulasi aset jangka panjang (6 bulan s/d bertahun-tahun). Fokus utama terletak pada kualitas profitabilitas perusahaan (ROE & Margin), risiko beban utang (DER), pertumbuhan laba bersih, kualitas arus kas, serta perhitungan nilai wajar (Fair Value) dan Margin of Safety (MOS).*")
+        else:
+            st.info("📈 **Mode Swing Trading (Sinyal Multi-Hari)**\n\n*Mode ini dirancang untuk menangkap pergerakan harga jangka pendek s/d menengah (2 hari s/d 30 hari). Analisis difokuskan pada kekuatan tren harga (MA20 & MA50), kejenuhan RSI, crossover MACD, serta konfirmasi volume harian dan data Bandarmologi (akumulasi asing & 3 broker terbesar).*")
+
         # Highlights Metrics Layout
-        buy_count = sum(1 for r in results if r["recommendation"] in ["BUY", "Watchlist Prioritas"])
-        watch_count = sum(1 for r in results if r["recommendation"] in ["HOLD / WATCH", "Wait and See"])
-        avoid_count = sum(1 for r in results if r["recommendation"] in ["AVOID", "Keluar dari Watchlist"])
+        buy_count = sum(1 for r in results if clean_signal_name(r["recommendation"]) == "Watchlist Prioritas")
+        watch_count = sum(1 for r in results if clean_signal_name(r["recommendation"]) == "Wait and See")
+        avoid_count = sum(1 for r in results if clean_signal_name(r["recommendation"]) == "Keluar dari Watchlist")
         
         col_m1, col_m2, col_m3, col_m4 = st.columns(4)
         with col_m1:
@@ -634,15 +651,6 @@ if "results" in st.session_state and st.session_state["results"]:
                 options=["Watchlist Prioritas", "Wait and See", "Keluar dari Watchlist"],
                 default=["Watchlist Prioritas", "Wait and See", "Keluar dari Watchlist"]
             )
-        
-        # Helper to map signal to regulatory-friendly Indonesian terms
-        def clean_signal_name(sig):
-            sig_clean = sig.strip()
-            if sig_clean in ["Watchlist Prioritas", "BUY", "Scalping Prioritas", "Swing Prioritas", "Investasi Prioritas"]:
-                return "Watchlist Prioritas"
-            elif sig_clean in ["Wait and See", "HOLD / WATCH", "HOLD", "WATCH", "Wait and See (Scalping)", "Wait and See (Swing)", "Wait and See (Investasi)"]:
-                return "Wait and See"
-            return "Keluar dari Watchlist"
 
         table_data = []
         for r in results:

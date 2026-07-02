@@ -105,18 +105,15 @@ def calculate_scalping_score(indicators: Dict, intraday_df: pd.DataFrame, order_
     
     # Sinyal Logic
     signal = "Wait and See (Scalping)"
-    if (score >= 70 and 
+    if (score >= 65 and 
         close > vwap_val and 
-        ema9_intra > ema21_intra and 
-        spread <= 1.0 and 
-        vol_ratio >= 1.2 and 
-        bid_ask_ratio >= 1.15):
+        spread <= 1.3 and 
+        rsi <= 78):
         signal = "Scalping Prioritas"
     elif (close < vwap_val or 
-          ema9_intra < ema21_intra or 
-          spread > 1.2 or 
-          rsi > 80 or 
-          score < 50):
+          spread > 1.8 or 
+          rsi > 85 or 
+          score < 45):
         signal = "Keluar dari Watchlist (Scalping)"
     else:
         signal = "Wait and See (Scalping)"
@@ -278,18 +275,15 @@ def calculate_swing_score(indicators: Dict, broker_df: Optional[pd.DataFrame], f
     rr_ratio = reward / risk if risk > 0 else 1.0
     
     signal = "Wait and See (Swing)"
-    if (score >= 70 and 
+    if (score >= 65 and 
         close > ma20 and 
-        close > ma50 and 
-        macd > macd_sig and 
-        (45 <= rsi <= 72) and 
-        vol_ratio >= 1.15 and 
-        rr_ratio >= 1.5):
+        (38 <= rsi <= 76) and 
+        rr_ratio >= 1.25):
         signal = "Swing Prioritas"
-    elif (close < ma20 or 
-          rsi > 80 or 
-          rsi < 30 or 
-          score < 50):
+    elif (score < 45 or 
+          rsi > 82 or 
+          rsi < 28 or 
+          (close < ma20 and close < ma50)):
         signal = "Keluar dari Watchlist (Swing)"
     else:
         signal = "Wait and See (Swing)"
@@ -467,18 +461,17 @@ def calculate_investment_score(financials: Dict[str, Any], close_price: float) -
     
     # Investment View Action
     inv_view = "Wait and See (Investasi)"
-    if (score >= 70 and 
-        qual_status == "Strong" and 
+    if (score >= 65 and 
+        qual_status in ["Strong", "Average"] and 
         val_status in ["Cheap", "Fair"] and 
-        mos >= 12.0 and 
-        der <= 1.5 and 
-        ocf > 0):
+        mos >= 0.0 and 
+        der <= 1.8 and 
+        net_profit > 0):
         inv_view = "Investasi Prioritas"
     elif (qual_status == "Weak" or 
           val_status == "Expensive" or 
-          mos < -10.0 or 
-          der > 2.2 or 
-          ocf < 0 or 
+          mos < -15.0 or 
+          der > 2.5 or 
           net_profit < 0):
         inv_view = "Keluar dari Watchlist (Investasi)"
     else:
