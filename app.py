@@ -633,13 +633,6 @@ with col_header_user:
 
 st.markdown('<div class="header-divider"></div>', unsafe_allow_html=True)
 
-# Create Top configurations layout instead of sidebar
-st.markdown("""
-<div class="glass-card" style="padding: 16px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(59, 130, 246, 0.15);">
-    <h4 style="margin-top:0; margin-bottom:12px; color:#60a5fa; font-weight:700;">⚙️ Panel Konfigurasi & Filter Screening</h4>
-</div>
-""", unsafe_allow_html=True)
-
 # Grid Layout for Options - 2 Columns instead of 3
 col_cfg1, col_cfg2 = st.columns(2)
 with col_cfg1:
@@ -681,7 +674,7 @@ if selected_preset == "Kustom (Pilih Manual)":
     selected_tickers = st.multiselect(
         "Pilih Saham (Bisa multi-select):",
         options=list(IDX_STOCKS.keys()),
-        default=["BBCA.JK", "BBRI.JK", "BMRI.JK", "TLKM.JK", "ASII.JK", "UNVR.JK", "GOTO.JK"],
+        default=["BBCA.JK"],
         format_func=lambda x: f"{x.split('.')[0]} - {IDX_STOCKS.get(x, x)}"
     )
 elif selected_preset == "Ketik Ticker Manual":
@@ -714,20 +707,7 @@ else:
     selected_tickers = df_sector['ticker'].tolist()
     st.info(f"Terpilih {len(selected_tickers)} saham di {selected_preset}.")
 
-# Row for custom add & action trigger
-col_act1, col_act2 = st.columns([1.5, 1])
-with col_act1:
-    custom_add = st.text_input("Tambah Ticker Saham Tambahan secara Manual (Contoh: BRMS):", "")
-    if custom_add:
-        t_add = custom_add.strip().upper()
-        if not t_add.endswith(".JK"):
-            t_add = f"{t_add}.JK"
-        if t_add not in selected_tickers:
-            selected_tickers.append(t_add)
-with col_act2:
-    st.write("")
-    st.write("")
-    run_analysis = st.button("🔄 Jalankan & Simpan Analisis Baru", use_container_width=True, type="primary")
+# Setup automated configuration triggers without manual buttons
 
 # Telegram & DB configurations (Collapsible Expander)
 tg_bot_token = ""
@@ -774,18 +754,15 @@ period_changed = history_period != st.session_state["last_history_period"]
 mode_changed = selected_mode != st.session_state["last_selected_mode"]
 
 should_trigger = False
-is_large_batch = len(selected_tickers) > 120
 
 if "results" not in st.session_state:
-    if not is_large_batch and selected_tickers:
+    if selected_tickers:
         should_trigger = True
-elif run_analysis:
-    should_trigger = True
-elif (tickers_changed or period_changed or mode_changed) and not is_large_batch:
+elif tickers_changed or period_changed or mode_changed:
     should_trigger = True
 
 if "results" not in st.session_state and not should_trigger:
-    st.info("💡 **Silakan pilih kategori saham di sidebar kiri dan klik '🔄 Jalankan & Simpan Analisis Baru'** untuk memulai screening.")
+    st.info("💡 **Silakan pilih kategori saham atau mode analisis di atas** untuk memulai screening secara otomatis.")
 
 if should_trigger:
     st.session_state["last_selected_tickers"] = selected_tickers
