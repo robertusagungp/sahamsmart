@@ -633,9 +633,10 @@ if "results" in st.session_state and st.session_state["results"]:
         
         # Helper to map signal to regulatory-friendly Indonesian terms
         def clean_signal_name(sig):
-            if sig in ["Watchlist Prioritas", "BUY"]:
+            sig_clean = sig.strip()
+            if sig_clean in ["Watchlist Prioritas", "BUY", "Scalping Prioritas", "Swing Prioritas", "Investasi Prioritas"]:
                 return "Watchlist Prioritas"
-            elif sig in ["Wait and See", "HOLD / WATCH", "HOLD", "WATCH"]:
+            elif sig_clean in ["Wait and See", "HOLD / WATCH", "HOLD", "WATCH", "Wait and See (Scalping)", "Wait and See (Swing)", "Wait and See (Investasi)"]:
                 return "Wait and See"
             return "Keluar dari Watchlist"
 
@@ -664,7 +665,7 @@ if "results" in st.session_state and st.session_state["results"]:
                     "RSI Intraday": f"{r['rsi']:.1f}" if r['rsi'] is not None else "N/A",
                     "Vol Ratio Intraday": f"{r['volume_ratio']:.2f}x",
                     "Final Score": r["score"],
-                    "Signal": clean_rec_sig,
+                    "Signal": r["recommendation"],
                     "Entry Area": r["entry_area"],
                     "SL": f"Rp {r['sl']:,}" if isinstance(r['sl'], (int, float)) else r['sl'],
                     "TP1": f"Rp {r['tp1']:,}" if isinstance(r['tp1'], (int, float)) else r['tp1'],
@@ -685,7 +686,7 @@ if "results" in st.session_state and st.session_state["results"]:
                     "Margin of Safety": fin.get("margin_of_safety", "N/A"),
                     "Governance Risk": fin.get("governance_risk", "Low"),
                     "Final Score": r["score"],
-                    "Signal": clean_rec_sig
+                    "Signal": r["recommendation"]
                 })
             else: # Swing Trading Mode
                 table_data.append({
@@ -700,7 +701,7 @@ if "results" in st.session_state and st.session_state["results"]:
                     "Technical Score": r["technical_score"],
                     "Flow Score": r["flow_score"] if r["flow_score"] is not None else "N/A",
                     "Final Score": r["score"],
-                    "Signal": clean_rec_sig,
+                    "Signal": r["recommendation"],
                     "Entry Area": r["entry_area"],
                     "TP1": f"Rp {r['tp1']:,}" if isinstance(r['tp1'], (int, float)) else r['tp1'],
                     "TP2": f"Rp {r['tp2']:,}" if isinstance(r['tp2'], (int, float)) else r['tp2'],
@@ -714,14 +715,15 @@ if "results" in st.session_state and st.session_state["results"]:
         df_table = pd.DataFrame(table_data).sort_values(by="Final Score", ascending=False).reset_index(drop=True)
         
         # Apply dynamic signal filtering
-        df_table_filtered = df_table[df_table['Signal'].isin(signal_filter)].reset_index(drop=True)
+        df_table_filtered = df_table[df_table['Signal'].apply(clean_signal_name).isin(signal_filter)].reset_index(drop=True)
         
         def style_recommendation(val):
-            if val == "Watchlist Prioritas":
+            val_clean = clean_signal_name(val)
+            if val_clean == "Watchlist Prioritas":
                 return 'background-color: rgba(16, 185, 129, 0.25); color: #10b981; font-weight: bold; border: 1px solid #10b981;'
-            elif val == "Wait and See":
+            elif val_clean == "Wait and See":
                 return 'background-color: rgba(245, 158, 11, 0.25); color: #f59e0b; font-weight: bold; border: 1px solid #f59e0b;'
-            elif val == "Keluar dari Watchlist":
+            elif val_clean == "Keluar dari Watchlist":
                 return 'background-color: rgba(239, 68, 68, 0.25); color: #ef4444; font-weight: bold; border: 1px solid #ef4444;'
             return ''
             

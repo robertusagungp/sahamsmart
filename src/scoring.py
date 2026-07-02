@@ -3,10 +3,11 @@ import pandas as pd
 import numpy as np
 
 def clean_signal_name(sig: str) -> str:
-    """Helper to map legacy signal strings to regulatory compliant terms."""
-    if sig in ["Watchlist Prioritas", "BUY", "Strong Intraday Momentum", "Swing Breakout", "Swing Pullback", "Investment Candidate"]:
+    """Helper to map legacy or mode-specific signal strings to regulatory compliant terms."""
+    sig_clean = sig.strip()
+    if sig_clean in ["Watchlist Prioritas", "BUY", "Strong Intraday Momentum", "Swing Breakout", "Swing Pullback", "Investment Candidate", "Scalping Prioritas", "Swing Prioritas", "Investasi Prioritas", "Accumulate Watchlist"]:
         return "Watchlist Prioritas"
-    elif sig in ["Wait and See", "HOLD", "WATCH", "HOLD / WATCH", "Scalping Watch", "Swing Watch", "Investment Hold"]:
+    elif sig_clean in ["Wait and See", "HOLD", "WATCH", "HOLD / WATCH", "Scalping Watch", "Swing Watch", "Investment Hold", "Wait and See (Scalping)", "Wait and See (Swing)", "Wait and See (Investasi)", "Hold Watchlist"]:
         return "Wait and See"
     else:
         return "Keluar dari Watchlist"
@@ -103,22 +104,22 @@ def calculate_scalping_score(indicators: Dict, intraday_df: pd.DataFrame, order_
     score = max(0, min(100, score))
     
     # Sinyal Logic
-    signal = "Wait and See"
+    signal = "Wait and See (Scalping)"
     if (score >= 70 and 
         close > vwap_val and 
         ema9_intra > ema21_intra and 
         spread <= 1.0 and 
         vol_ratio >= 1.2 and 
         bid_ask_ratio >= 1.15):
-        signal = "Watchlist Prioritas"
+        signal = "Scalping Prioritas"
     elif (close < vwap_val or 
           ema9_intra < ema21_intra or 
           spread > 1.2 or 
           rsi > 80 or 
           score < 50):
-        signal = "Keluar dari Watchlist"
+        signal = "Keluar dari Watchlist (Scalping)"
     else:
-        signal = "Wait and See"
+        signal = "Wait and See (Scalping)"
         
     # Scalping Risk Setup
     entry_low = round(close)
@@ -137,10 +138,10 @@ def calculate_scalping_score(indicators: Dict, intraday_df: pd.DataFrame, order_
         "score": score,
         "recommendation": signal,
         "signal": signal,
-        "entry_area": f"Rp {entry_low:,} - Rp {entry_high:,}" if signal != "Keluar dari Watchlist" else "No entry recommended",
-        "sl": sl if signal != "Keluar dari Watchlist" else "N/A",
-        "tp1": tp1 if signal != "Keluar dari Watchlist" else "N/A",
-        "tp2": tp2 if signal != "Keluar dari Watchlist" else "N/A",
+        "entry_area": f"Rp {entry_low:,} - Rp {entry_high:,}" if signal != "Keluar dari Watchlist (Scalping)" else "No entry recommended",
+        "sl": sl if signal != "Keluar dari Watchlist (Scalping)" else "N/A",
+        "tp1": tp1 if signal != "Keluar dari Watchlist (Scalping)" else "N/A",
+        "tp2": tp2 if signal != "Keluar dari Watchlist (Scalping)" else "N/A",
         "risk_level": risk_level,
         "time_horizon": "Menit s/d 1 Hari (Intraday)",
         "reasons": [f"[Scalping] {r}" for r in reasons],
@@ -276,22 +277,22 @@ def calculate_swing_score(indicators: Dict, broker_df: Optional[pd.DataFrame], f
     reward = tp1 - entry_high
     rr_ratio = reward / risk if risk > 0 else 1.0
     
-    signal = "Wait and See"
+    signal = "Wait and See (Swing)"
     if (score >= 70 and 
         close > ma20 and 
         macd > macd_sig and 
         (45 <= rsi <= 72) and 
         vol_ratio >= 1.15 and 
         rr_ratio >= 1.5):
-        signal = "Watchlist Prioritas"
+        signal = "Swing Prioritas"
     elif (close < ma50 or 
           close < ma200 or 
           rsi > 78 or 
           rsi < 32 or 
           score < 50):
-        signal = "Keluar dari Watchlist"
+        signal = "Keluar dari Watchlist (Swing)"
     else:
-        signal = "Wait and See"
+        signal = "Wait and See (Swing)"
         
     risk_level = "Medium"
     if rsi > 75 or close < ma50:
@@ -303,11 +304,11 @@ def calculate_swing_score(indicators: Dict, broker_df: Optional[pd.DataFrame], f
         "score": score,
         "recommendation": signal,
         "signal": signal,
-        "entry_area": f"Rp {entry_low:,} - Rp {entry_high:,}" if signal != "Keluar dari Watchlist" else "No entry recommended",
-        "sl": sl if signal != "Keluar dari Watchlist" else "N/A",
-        "tp1": tp1 if signal != "Keluar dari Watchlist" else "N/A",
-        "tp2": tp2 if signal != "Keluar dari Watchlist" else "N/A",
-        "risk_reward_ratio": f"{rr_ratio:.2f}" if signal != "Keluar dari Watchlist" else "N/A",
+        "entry_area": f"Rp {entry_low:,} - Rp {entry_high:,}" if signal != "Keluar dari Watchlist (Swing)" else "No entry recommended",
+        "sl": sl if signal != "Keluar dari Watchlist (Swing)" else "N/A",
+        "tp1": tp1 if signal != "Keluar dari Watchlist (Swing)" else "N/A",
+        "tp2": tp2 if signal != "Keluar dari Watchlist (Swing)" else "N/A",
+        "risk_reward_ratio": f"{rr_ratio:.2f}" if signal != "Keluar dari Watchlist (Swing)" else "N/A",
         "risk_level": risk_level,
         "time_horizon": "2 s/d 30 Hari",
         "reasons": [f"[Swing] {r}" for r in reasons],
@@ -465,23 +466,23 @@ def calculate_investment_score(financials: Dict[str, Any], close_price: float) -
     mos = ((fair_value - close_price) / fair_value) * 100
     
     # Investment View Action
-    inv_view = "Wait and See"
+    inv_view = "Wait and See (Investasi)"
     if (score >= 70 and 
         qual_status == "Strong" and 
         val_status in ["Cheap", "Fair"] and 
         mos >= 12.0 and 
         der <= 1.5 and 
         ocf > 0):
-        inv_view = "Watchlist Prioritas"
+        inv_view = "Investasi Prioritas"
     elif (qual_status == "Weak" or 
           val_status == "Expensive" or 
           mos < -10.0 or 
           der > 2.2 or 
           ocf < 0 or 
           net_profit < 0):
-        inv_view = "Keluar dari Watchlist"
+        inv_view = "Keluar dari Watchlist (Investasi)"
     else:
-        inv_view = "Wait and See"
+        inv_view = "Wait and See (Investasi)"
         
     return {
         "score": score,
