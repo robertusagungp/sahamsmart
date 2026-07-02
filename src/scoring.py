@@ -104,12 +104,21 @@ def calculate_scalping_score(indicators: Dict, intraday_df: pd.DataFrame, order_
     
     # Sinyal Logic
     signal = "Wait and See"
-    if score >= 75 and close > vwap_val and vol_ratio >= 1.8:
-        signal = "Strong Intraday Momentum"
-    elif close > vwap_val and ema9_intra > ema21_intra and bid_ask_ratio >= 1.2:
-        signal = "Scalping Watch"
-    elif spread > 1.0 or rsi > 85 or close < vwap_val:
-        signal = "Avoid Scalping"
+    if (score >= 70 and 
+        close > vwap_val and 
+        ema9_intra > ema21_intra and 
+        spread <= 1.0 and 
+        vol_ratio >= 1.2 and 
+        bid_ask_ratio >= 1.15):
+        signal = "Watchlist Prioritas"
+    elif (close < vwap_val or 
+          ema9_intra < ema21_intra or 
+          spread > 1.2 or 
+          rsi > 80 or 
+          score < 50):
+        signal = "Keluar dari Watchlist"
+    else:
+        signal = "Wait and See"
         
     # Scalping Risk Setup
     entry_low = round(close)
@@ -128,10 +137,10 @@ def calculate_scalping_score(indicators: Dict, intraday_df: pd.DataFrame, order_
         "score": score,
         "recommendation": signal,
         "signal": signal,
-        "entry_area": f"Rp {entry_low:,} - Rp {entry_high:,}" if signal != "Avoid Scalping" else "No entry recommended",
-        "sl": sl if signal != "Avoid Scalping" else "N/A",
-        "tp1": tp1 if signal != "Avoid Scalping" else "N/A",
-        "tp2": tp2 if signal != "Avoid Scalping" else "N/A",
+        "entry_area": f"Rp {entry_low:,} - Rp {entry_high:,}" if signal != "Keluar dari Watchlist" else "No entry recommended",
+        "sl": sl if signal != "Keluar dari Watchlist" else "N/A",
+        "tp1": tp1 if signal != "Keluar dari Watchlist" else "N/A",
+        "tp2": tp2 if signal != "Keluar dari Watchlist" else "N/A",
         "risk_level": risk_level,
         "time_horizon": "Menit s/d 1 Hari (Intraday)",
         "reasons": [f"[Scalping] {r}" for r in reasons],
@@ -255,18 +264,6 @@ def calculate_swing_score(indicators: Dict, broker_df: Optional[pd.DataFrame], f
     resistance_20d = indicators.get("resistance_20d") or close * 1.05
     resistance_50d = indicators.get("resistance_50d") or close * 1.10
     
-    signal = "Wait and See"
-    if score >= 75 and close > ma20 and vol_ratio >= 1.3:
-        signal = "Swing Breakout"
-    elif close > ma20 and macd > macd_sig and (45 <= rsi <= 70):
-        signal = "Swing Watch"
-    elif close > ma50 and indicators.get("distance_from_20d_low", 10.0) < 3.0:
-        signal = "Swing Pullback"
-    
-    # Avoid Conditions
-    if close < ma50 or close < ma200 or rsi > 80:
-        signal = "Avoid Swing"
-        
     # Setup calculation
     entry_low = round(max(support_20d, close * 0.96))
     entry_high = round(close)
@@ -279,8 +276,21 @@ def calculate_swing_score(indicators: Dict, broker_df: Optional[pd.DataFrame], f
     reward = tp1 - entry_high
     rr_ratio = reward / risk if risk > 0 else 1.0
     
-    if signal != "Avoid Swing" and rr_ratio < 1.5:
-        # Demote if reward is not good enough
+    signal = "Wait and See"
+    if (score >= 70 and 
+        close > ma20 and 
+        macd > macd_sig and 
+        (45 <= rsi <= 72) and 
+        vol_ratio >= 1.15 and 
+        rr_ratio >= 1.5):
+        signal = "Watchlist Prioritas"
+    elif (close < ma50 or 
+          close < ma200 or 
+          rsi > 78 or 
+          rsi < 32 or 
+          score < 50):
+        signal = "Keluar dari Watchlist"
+    else:
         signal = "Wait and See"
         
     risk_level = "Medium"
@@ -293,11 +303,11 @@ def calculate_swing_score(indicators: Dict, broker_df: Optional[pd.DataFrame], f
         "score": score,
         "recommendation": signal,
         "signal": signal,
-        "entry_area": f"Rp {entry_low:,} - Rp {entry_high:,}" if signal != "Avoid Swing" else "No entry recommended",
-        "sl": sl if signal != "Avoid Swing" else "N/A",
-        "tp1": tp1 if signal != "Avoid Swing" else "N/A",
-        "tp2": tp2 if signal != "Avoid Swing" else "N/A",
-        "risk_reward_ratio": f"{rr_ratio:.2f}" if signal != "Avoid Swing" else "N/A",
+        "entry_area": f"Rp {entry_low:,} - Rp {entry_high:,}" if signal != "Keluar dari Watchlist" else "No entry recommended",
+        "sl": sl if signal != "Keluar dari Watchlist" else "N/A",
+        "tp1": tp1 if signal != "Keluar dari Watchlist" else "N/A",
+        "tp2": tp2 if signal != "Keluar dari Watchlist" else "N/A",
+        "risk_reward_ratio": f"{rr_ratio:.2f}" if signal != "Keluar dari Watchlist" else "N/A",
         "risk_level": risk_level,
         "time_horizon": "2 s/d 30 Hari",
         "reasons": [f"[Swing] {r}" for r in reasons],
@@ -455,11 +465,23 @@ def calculate_investment_score(financials: Dict[str, Any], close_price: float) -
     mos = ((fair_value - close_price) / fair_value) * 100
     
     # Investment View Action
-    inv_view = "Hold Watchlist"
-    if qual_status == "Strong" and val_status == "Cheap" and mos > 15:
-        inv_view = "Accumulate Watchlist"
-    elif qual_status == "Weak" or val_status == "Expensive" or der > 2.0 or net_profit < 0:
-        inv_view = "Avoid"
+    inv_view = "Wait and See"
+    if (score >= 70 and 
+        qual_status == "Strong" and 
+        val_status in ["Cheap", "Fair"] and 
+        mos >= 12.0 and 
+        der <= 1.5 and 
+        ocf > 0):
+        inv_view = "Watchlist Prioritas"
+    elif (qual_status == "Weak" or 
+          val_status == "Expensive" or 
+          mos < -10.0 or 
+          der > 2.2 or 
+          ocf < 0 or 
+          net_profit < 0):
+        inv_view = "Keluar dari Watchlist"
+    else:
+        inv_view = "Wait and See"
         
     return {
         "score": score,
