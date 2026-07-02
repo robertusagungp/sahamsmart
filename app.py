@@ -156,6 +156,40 @@ st.markdown("""
         margin: 0 auto 30px auto;
         line-height: 1.6;
     }
+    
+    /* Responsive styling for Mobile viewports */
+    @media (max-width: 768px) {
+        .hero-headline {
+            font-size: 2.0rem !important;
+            line-height: 1.3 !important;
+        }
+        .hero-subheadline {
+            font-size: 0.95rem !important;
+            line-height: 1.5 !important;
+            margin-bottom: 20px !important;
+        }
+        .glass-card {
+            padding: 14px !important;
+            margin-bottom: 10px !important;
+            border-radius: 12px !important;
+        }
+        .login-container {
+            padding: 20px !important;
+            margin: 20px auto !important;
+        }
+        .stApp h1 {
+            font-size: 1.7rem !important;
+        }
+        .stApp h2 {
+            font-size: 1.3rem !important;
+        }
+        .stApp h3 {
+            font-size: 1.15rem !important;
+        }
+        .stApp h4 {
+            font-size: 1.05rem !important;
+        }
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -585,7 +619,8 @@ col_header_title, col_header_user = st.columns([3, 1])
 with col_header_title:
     st.title("👑 Smart Saham Premium Dashboard")
     st.markdown("##### *AI Stock Screening & Risk Monitoring Platform Bursa Efek Indonesia*")
-    st.caption("⚠️ **Pemberitahuan Hukum (OJK)**: Aplikasi ini bukan platform pemberi rekomendasi investasi final untuk beli/jual saham, melainkan platform penyaring data (*AI Stock Screening*) & pemantauan risiko (*Risk Monitoring*) untuk membantu riset mandiri Anda.")
+    with st.expander("⚠️ Disclaimer Hukum & Regulasi OJK", expanded=False):
+        st.caption("Aplikasi ini bukan platform pemberi rekomendasi investasi final untuk beli/jual saham, melainkan platform penyaring data (*AI Stock Screening*) & pemantauan risiko (*Risk Monitoring*) untuk membantu riset mandiri Anda.")
 with col_header_user:
     st.write("")
     st.markdown(f"👤 Akun: **{st.session_state['username'].upper()}** `[Premium Active]`")
@@ -605,8 +640,8 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Grid Layout for Options
-col_cfg1, col_cfg2, col_cfg3 = st.columns([1.2, 1.2, 0.8])
+# Grid Layout for Options - 2 Columns instead of 3
+col_cfg1, col_cfg2 = st.columns(2)
 with col_cfg1:
     selected_preset = st.selectbox(
         "🎯 Preset Kategori Saham:",
@@ -636,13 +671,9 @@ with col_cfg2:
         options=["Swing Trading Mode", "Scalping Mode (Beta)", "Investment Mode"],
         help="Memilih model analisa, horizon investasi, parameter scoring, dan visualisasi dashboard."
     )
-with col_cfg3:
-    history_period = st.selectbox(
-        "Rentang Waktu Historis",
-        options=["6mo", "1y", "2y"],
-        index=1,
-        help="Menentukan panjang data historis harian yang ditarik dari yfinance."
-    )
+
+# Internally default historical period to 1 year as requested
+history_period = "1y"
 
 selected_tickers = []
 
@@ -711,23 +742,20 @@ except Exception:
     
 is_admin = st.session_state["username"] == "fra"
 
-with st.expander("⚙️ Pengaturan Lanjutan (Status DB & Telegram Bot Alert)", expanded=False):
-    col_adv1, col_adv2 = st.columns(2)
-    with col_adv1:
-        st.markdown("🌐 **Status Sinkronisasi Database**")
-        if db_url:
-            st.success("Terkoneksi ke Neon DB Cloud (PostgreSQL)")
-        else:
-            st.info("Koneksi Database: Lokal (SQLite/CSV)")
-    with col_adv2:
-        if is_admin:
+if is_admin:
+    with st.expander("⚙️ Pengaturan Lanjutan (Status DB & Telegram Bot Alert)", expanded=False):
+        col_adv1, col_adv2 = st.columns(2)
+        with col_adv1:
+            st.markdown("🌐 **Status Sinkronisasi Database**")
+            if db_url:
+                st.success("Terkoneksi ke Neon DB Cloud (PostgreSQL)")
+            else:
+                st.info("Koneksi Database: Lokal (SQLite/CSV)")
+        with col_adv2:
             st.markdown("🔔 **Konfigurasi Telegram Bot (Admin Only)**")
             tg_bot_token = st.text_input("Bot Token", value=tg_bot_token, type="password", help="API Token Bot Telegram")
             tg_chat_id = st.text_input("Group/Chat ID", value=tg_chat_id, placeholder="Contoh: -100123456789")
             auto_send_buy = st.checkbox("Auto-Send Sinyal Watchlist Prioritas", value=False)
-        else:
-            st.markdown("🔔 **Konfigurasi Telegram Bot**")
-            st.info("Hanya akun admin ('fra') yang dapat memodifikasi konfigurasi Telegram Bot.")
 
 st.markdown("---")
 
