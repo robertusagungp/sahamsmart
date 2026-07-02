@@ -184,18 +184,17 @@ class AnalysisStorage:
                 except Exception as ex:
                     print(f"Migration warning: {ex}")
                     
-            # Self-healing migration for users table plan, active_mode, and role
-            try:
-                from sqlalchemy import text
-                with self.engine.begin() as conn:
-                    conn.execute(text("SELECT role FROM users LIMIT 1"))
-            except Exception:
-                # Run each ALTER query in a SEPARATE transaction to handle PostgreSQL transaction aborts safely!
-                for col_name, sql_type, default_val in [
-                    ("plan", "VARCHAR(30)", "'Smart Saham Radar Free'"),
-                    ("active_mode", "VARCHAR(50)", "'Swing Trading Mode'"),
-                    ("role", "VARCHAR(20)", "'customer'")
-                ]:
+            # Self-healing migration for users table plan, active_mode, and role (each checked individually!)
+            for col_name, sql_type, default_val in [
+                ("plan", "VARCHAR(30)", "'Smart Saham Radar Free'"),
+                ("active_mode", "VARCHAR(50)", "'Swing Trading Mode'"),
+                ("role", "VARCHAR(20)", "'customer'")
+            ]:
+                try:
+                    from sqlalchemy import text
+                    with self.engine.begin() as conn:
+                        conn.execute(text(f"SELECT {col_name} FROM users LIMIT 1"))
+                except Exception:
                     try:
                         from sqlalchemy import text
                         with self.engine.begin() as conn:
@@ -252,35 +251,34 @@ class AnalysisStorage:
                         text("INSERT INTO users (username, password_hash, email, created_at, plan, active_mode, role) VALUES (:u, :p, :e, :c, 'Smart Saham Radar Free', 'Swing Trading Mode', :r)"),
                         {"u": username, "p": password_hash, "e": email, "c": created_at, "r": "admin" if username == "fra" else "customer"}
                     )
-                return {"success": True, "message": "Registrasi berhasil! Silakan login."}
+                return {"success": True, "message": "Registrasi berhasil di database cloud! Silakan login."}
             except Exception as e:
-                print(f"Error creating user in DB: {str(e)}")
-                # Fail over to CSV
-                
-        # 2. CSV Register Fallback
-        try:
-            if os.path.exists(self.users_csv_path):
-                df_users = pd.read_csv(self.users_csv_path)
-                # Check duplicate
-                if not df_users.empty and username in df_users['username'].astype(str).str.lower().values:
-                    return {"success": False, "message": "Username sudah terdaftar."}
-            else:
-                df_users = pd.DataFrame(columns=['username', 'password_hash', 'email', 'created_at', 'plan', 'active_mode', 'role'])
-                
-            new_user = pd.DataFrame([{
-                'username': username,
-                'password_hash': password_hash,
-                'email': email,
-                'created_at': created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                'plan': 'Smart Saham Radar Free',
-                'active_mode': 'Swing Trading Mode',
-                'role': 'admin' if username == "fra" else 'customer'
-            }])
-            df_users = pd.concat([df_users, new_user], ignore_index=True)
-            df_users.to_csv(self.users_csv_path, index=False)
-            return {"success": True, "message": "Registrasi berhasil (Lokal CSV)! Silakan login."}
-        except Exception as e:
-            return {"success": False, "message": f"Registrasi gagal: {str(e)}"}
+                db_err_msg = str(e)
+                print(f"Error creating user in DB: {db_err_msg}")
+                # Fail over to CSV but bubble up the cloud DB error for developers
+                try:
+                    if os.path.exists(self.users_csv_path):
+                        df_users = pd.read_csv(self.users_csv_path)
+                        # Check duplicate
+                        if not df_users.empty and username in df_users['username'].astype(str).str.lower().values:
+                            return {"success": False, "message": "Username sudah terdaftar."}
+                    else:
+                        df_users = pd.DataFrame(columns=['username', 'password_hash', 'email', 'created_at', 'plan', 'active_mode', 'role'])
+                        
+                    new_user = pd.DataFrame([{
+                        'username': username,
+                        'password_hash': password_hash,
+                        'email': email,
+                        'created_at': created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                        'plan': 'Smart Saham Radar Free',
+                        'active_mode': 'Swing Trading Mode',
+                        'role': 'admin' if username == "fra" else 'customer'
+                    }])
+                    df_users = pd.concat([df_users, new_user], ignore_index=True)
+                    df_users.to_csv(self.users_csv_path, index=False)
+                    return {"success": True, "message": f"Registrasi berhasil di Lokal CSV (Cloud DB Error: {db_err_msg[:120]})! Silakan login."}
+                except Exception as csv_err:
+                    return {"success": False, "message": f"Registrasi gagal (DB Error: {db_err_msg[:120]}, CSV Error: {str(csv_err)})"}
 
     def authenticate_user(self, username: str, password: str) -> bool:
         """
