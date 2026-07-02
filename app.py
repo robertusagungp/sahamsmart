@@ -655,47 +655,23 @@ with col_header_user:
     role_label = "Admin" if is_admin else "Customer"
     st.markdown(f"👤 Akun: **{st.session_state['username'].upper()}** `({role_label})`")
     
-    # Plan Simulator Selector (Compact & Clean)
-    with st.expander("👤 Status & Paket Layanan", expanded=True):
-        sim_plan = st.selectbox(
-            "Simulasi Paket:",
-            options=["Free Plan", "1 Mode Plan", "All Mode Plan"],
-            index=0 if st.session_state["user_plan"] == "Free" else (1 if st.session_state["user_plan"] == "1 Mode" else 2),
-            key="header_plan_sim"
-        )
+    # Render static user plan info card (no selectboxes)
+    plan_name = st.session_state.get("user_plan", "All Mode")
+    plan_mode = st.session_state.get("user_selected_mode", "Swing Trading Mode")
+    
+    plan_badge_color = "#3b82f6" # Blue for 1 Mode
+    if plan_name == "Free":
+        plan_badge_color = "#94a3b8" # Grey
+    elif plan_name == "All Mode":
+        plan_badge_color = "#f59e0b" # Orange/Gold
         
-        # Sync to session state
-        new_plan = "Free"
-        if sim_plan == "1 Mode Plan":
-            new_plan = "1 Mode"
-        elif sim_plan == "All Mode Plan":
-            new_plan = "All Mode"
-            
-        new_mode = st.session_state["user_selected_mode"]
-            
-        # Select active mode for 1 Mode
-        if new_plan == "1 Mode":
-            sim_unlocked = st.selectbox(
-                "Pilih Mode Aktif Anda:",
-                options=["Swing Trading Mode", "Scalping Mode (Beta)", "Investment Mode"],
-                index=["Swing Trading Mode", "Scalping Mode (Beta)", "Investment Mode"].index(st.session_state["user_selected_mode"]),
-                key="header_mode_sim"
-            )
-            new_mode = sim_unlocked
-            
-        # Detect changes and save persistently to DB
-        if (new_plan != st.session_state["user_plan"]) or (new_plan == "1 Mode" and new_mode != st.session_state["user_selected_mode"]):
-            # Update DB/CSV
-            storage.update_user_profile(st.session_state["username"], new_plan, new_mode)
-            # Update session state
-            st.session_state["user_plan"] = new_plan
-            st.session_state["user_selected_mode"] = new_mode
-            st.toast("💾 Paket terupdate secara permanen di database!", icon="✅")
-            st.rerun()
-            
-        st.caption(f"Paket Aktif: **{st.session_state['user_plan']}**")
-        if st.session_state["user_plan"] == "1 Mode":
-            st.caption(f"Mode Unlocked: **{st.session_state['user_selected_mode']}**")
+    st.markdown(f"""
+    <div style="background: rgba(255,255,255,0.05); padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 12px;">
+        <span style="font-size:0.75rem; color:#94a3b8; display:block; margin-bottom:2px; text-transform:uppercase; letter-spacing:0.5px;">Paket Layanan</span>
+        <span style="font-size:1.0rem; font-weight:bold; color:{plan_badge_color};">{plan_name}</span>
+        {"<span style='font-size:0.75rem; color:#cbd5e1; display:block; margin-top:2px;'>Mode: " + plan_mode + "</span>" if plan_name == "1 Mode" else ""}
+    </div>
+    """, unsafe_allow_html=True)
         
     if st.button("🚪 Keluar Akun (Logout)", use_container_width=True):
         storage.log_activity(st.session_state["username"], "LOGOUT")
