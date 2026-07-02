@@ -131,6 +131,31 @@ st.markdown("""
         color: #ef4444;
         border: 1px solid #ef4444;
     }
+
+    /* Landing Page Hero CSS */
+    .hero-container {
+        text-align: center;
+        padding: 60px 20px 30px 20px;
+        background: radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
+        border-radius: 20px;
+        margin-bottom: 20px;
+    }
+    .hero-headline {
+        font-size: 3.2rem;
+        font-weight: 800;
+        line-height: 1.25;
+        background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #94a3b8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 20px;
+    }
+    .hero-subheadline {
+        font-size: 1.25rem;
+        color: #94a3b8;
+        max-width: 850px;
+        margin: 0 auto 30px auto;
+        line-height: 1.6;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -168,72 +193,390 @@ if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
 if "username" not in st.session_state:
     st.session_state["username"] = ""
+if "show_auth" not in st.session_state:
+    st.session_state["show_auth"] = False
 
-# Render login/register page if not logged in
+# Render landing page or login portal if not logged in
 if not st.session_state["logged_in"]:
-    st.markdown('<div class="login-container">', unsafe_allow_html=True)
-    st.markdown('<div class="login-title">💸 Smart Saham</div>', unsafe_allow_html=True)
-    st.markdown('<div class="premium-badge">✨ PRO SCREENER PORTAL</div>', unsafe_allow_html=True)
-    st.markdown("<p style='color:#94a3b8; font-size:0.95rem; margin-top:-10px;'>Akses premium screening saham harian, visualisasi teknikal & histori log berbasis AI-Scoring</p>", unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    if st.session_state["show_auth"]:
+        # Show Login / Register portal
+        col_back_1, col_back_2 = st.columns([5, 1])
+        with col_back_2:
+            if st.button("⬅️ Halaman Utama", use_container_width=True):
+                st.session_state["show_auth"] = False
+                st.rerun()
+                
+        st.markdown('<div class="login-container">', unsafe_allow_html=True)
+        st.markdown('<div class="login-title">💸 Smart Saham</div>', unsafe_allow_html=True)
+        st.markdown('<div class="premium-badge">✨ PRO SCREENER PORTAL</div>', unsafe_allow_html=True)
+        st.markdown("<p style='color:#94a3b8; font-size:0.95rem; margin-top:-10px;'>Akses premium screening saham harian, visualisasi teknikal & histori log berbasis AI-Scoring</p>", unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # Use Streamlit form layout for login UI
-    login_tab, register_tab = st.tabs(["🔐 Masuk Ke Akun", "📝 Daftar Akun Baru"])
-    
-    with login_tab:
-        col_c, col_d = st.columns([1, 1])
-        with col_c:
-            st.image("https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3", use_container_width=True, caption="Pantau Momentum & Tren Saham Terbaik")
-        with col_d:
-            st.markdown("### Silakan Login")
-            login_username = st.text_input("Username", key="login_u").strip()
-            login_password = st.text_input("Password", type="password", key="login_p")
-            submit_login = st.button("Masuk Sekarang 🚀", use_container_width=True)
-            
-            if submit_login:
-                if storage.authenticate_user(login_username, login_password):
-                    st.session_state["logged_in"] = True
-                    st.session_state["username"] = login_username.lower()
-                    # Log login activity
-                    storage.log_activity(login_username, "LOGIN")
-                    st.success("Login sukses! Membuka dashboard...")
-                    st.rerun()
-                else:
-                    st.error("Username atau password salah. Coba lagi atau buat akun baru.")
-                    
-    with register_tab:
-        col_e, col_f = st.columns([1, 1])
-        with col_e:
-            st.markdown("### Daftar Akun Premium")
-            reg_username = st.text_input("Username Baru", key="reg_u").strip()
-            reg_email = st.text_input("Email (Opsional)", key="reg_e").strip()
-            reg_password = st.text_input("Password Baru", type="password", key="reg_p")
-            reg_password_confirm = st.text_input("Konfirmasi Password", type="password", key="reg_pc")
-            submit_register = st.button("Buat Akun Premium ✨", use_container_width=True)
-            
-            if submit_register:
-                if not reg_username or not reg_password:
-                    st.error("Username dan password tidak boleh kosong.")
-                elif reg_password != reg_password_confirm:
-                    st.error("Konfirmasi password tidak cocok.")
-                else:
-                    res = storage.create_user(reg_username, reg_password, reg_email)
-                    if res["success"]:
-                        st.success(res["message"])
-                        # Log registration activity
-                        storage.log_activity(reg_username, "REGISTER")
+        login_tab, register_tab = st.tabs(["🔐 Masuk Ke Akun", "📝 Daftar Akun Baru"])
+        
+        with login_tab:
+            col_c, col_d = st.columns([1, 1])
+            with col_c:
+                st.image("https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3", use_container_width=True, caption="Pantau Momentum & Tren Saham Terbaik")
+            with col_d:
+                st.markdown("### Silakan Login")
+                login_username = st.text_input("Username", key="login_u").strip()
+                login_password = st.text_input("Password", type="password", key="login_p")
+                submit_login = st.button("Masuk Sekarang 🚀", use_container_width=True)
+                
+                if submit_login:
+                    if storage.authenticate_user(login_username, login_password):
+                        st.session_state["logged_in"] = True
+                        st.session_state["username"] = login_username.lower()
+                        # Log login activity
+                        storage.log_activity(login_username, "LOGIN")
+                        st.success("Login sukses! Membuka dashboard...")
+                        st.rerun()
                     else:
-                        st.error(res["message"])
-        with col_f:
+                        st.error("Username atau password salah. Coba lagi atau buat akun baru.")
+                        
+        with register_tab:
+            col_e, col_f = st.columns([1, 1])
+            with col_e:
+                st.markdown("### Daftar Akun Premium")
+                reg_username = st.text_input("Username Baru", key="reg_u").strip()
+                reg_email = st.text_input("Email (Opsional)", key="reg_e").strip()
+                reg_password = st.text_input("Password Baru", type="password", key="reg_p")
+                reg_password_confirm = st.text_input("Konfirmasi Password", type="password", key="reg_pc")
+                submit_register = st.button("Buat Akun Premium ✨", use_container_width=True)
+                
+                if submit_register:
+                    if not reg_username or not reg_password:
+                        st.error("Username dan password tidak boleh kosong.")
+                    elif reg_password != reg_password_confirm:
+                        st.error("Konfirmasi password tidak cocok.")
+                    else:
+                        res = storage.create_user(reg_username, reg_password, reg_email)
+                        if res["success"]:
+                            st.success(res["message"])
+                            # Log registration activity
+                            storage.log_activity(reg_username, "REGISTER")
+                        else:
+                            st.error(res["message"])
+            with col_f:
+                st.markdown("""
+                ### Benefit Akun Premium:
+                - 📈 **Screener Saham Tak Terbatas**: Akses seluruh daftar saham di Bursa Efek Indonesia (IDX).
+                - 🎯 **Advanced scoring system**: Kalkulasi momentum, volume trend, RSI, dan MA20/MA50.
+                - 🛠️ **Dashboard detail & risiko**: Penjelasan alasan status Watchlist Prioritas / Wait and See / Keluar dari Watchlist beserta faktor risikonya.
+                - 🗃️ **Sinkronisasi Database Awan**: Histori log tersinkronisasi di Neon DB (PostgreSQL).
+                - 🔐 **Log Aktivitas Aman**: Seluruh tindakan terekam aman untuk audit analisis Anda.
+                """)
+        st.stop()
+    else:
+        # Show Landing Page
+        col_logo_title, col_logo_btn = st.columns([4, 1])
+        with col_logo_title:
+            st.title("👑 Smart Saham Premium")
+            st.caption("AI Stock Screening & Risk Monitoring Platform Bursa Efek Indonesia")
+        with col_logo_btn:
+            st.write("")
+            if st.button("🔐 Masuk ke Aplikasi", use_container_width=True, type="primary"):
+                st.session_state["show_auth"] = True
+                st.rerun()
+                
+        # 1 & 2. Hero Section & Subheadline
+        st.markdown("""
+        <div class="hero-container">
+            <h1 class="hero-headline">Analisa Saham Lebih Cepat,<br>Lebih Terarah, dan Berbasis Data.</h1>
+            <p class="hero-subheadline">Pilih mode <b>Scalping</b>, <b>Swing Trading</b>, atau <b>Investment</b>. Dapatkan stock score, risk level, alasan sinyal, entry area, target, dan invalidation point dalam satu dashboard.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # 3. Main CTA
+        col_cta1, col_cta2, col_cta3 = st.columns([1, 2, 1])
+        with col_cta2:
+            if st.button("🎁 Coba Lihat 3 Saham Berskor Tertinggi Hari Ini (Gratis)", use_container_width=True, type="primary"):
+                st.toast("Silakan gulir ke bawah ke bagian Free Signal Preview!", icon="👇")
+            if st.button("🔐 Login Premium untuk Akses Watchlist Hari Ini", use_container_width=True):
+                st.session_state["show_auth"] = True
+                st.rerun()
+                
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.markdown('<div class="header-divider"></div>', unsafe_allow_html=True)
+        
+        # 5. Market Snapshot
+        st.subheader("📊 Market Snapshot Hari Ini")
+        col_snap1, col_snap2, col_snap3, col_snap4 = st.columns(4)
+        with col_snap1:
             st.markdown("""
-            ### Benefit Akun Premium:
-            - 📈 **Screener Saham Tak Terbatas**: Akses seluruh daftar saham di Bursa Efek Indonesia (IDX).
-            - 🎯 **Advanced scoring system**: Kalkulasi momentum, volume trend, RSI, dan MA20/MA50.
-            - 🛠️ **Dashboard detail & risiko**: Penjelasan alasan status Watchlist Prioritas / Wait and See / Keluar dari Watchlist beserta faktor risikonya.
-            - 🗃️ **Sinkronisasi Database Awan**: Histori log tersinkronisasi di Neon DB (PostgreSQL).
-            - 🔐 **Log Aktivitas Aman**: Seluruh tindakan terekam aman untuk audit analisis Anda.
-            """)
-    st.stop()
+            <div class="metric-grid-card" style="border-top: 4px solid #10b981;">
+                <div class="metric-grid-lbl">Tren IHSG</div>
+                <div class="metric-grid-val" style="color:#10b981;">Neutral to Bullish 🟢</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with col_snap2:
+            st.markdown("""
+            <div class="metric-grid-card" style="border-top: 4px solid #f59e0b;">
+                <div class="metric-grid-lbl">Market Risk Level</div>
+                <div class="metric-grid-val" style="color:#f59e0b;">Medium Risk 🟡</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with col_snap3:
+            st.markdown("""
+            <div class="metric-grid-card" style="border-top: 4px solid #3b82f6;">
+                <div class="metric-grid-lbl">Sektor Terkuat</div>
+                <div class="metric-grid-val" style="color:#3b82f6;">Financials & Energy</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with col_snap4:
+            st.markdown("""
+            <div class="metric-grid-card" style="border-top: 4px solid #8b5cf6;">
+                <div class="metric-grid-lbl">Best Mode Today</div>
+                <div class="metric-grid-val" style="color:#8b5cf6;">Swing Trading Mode</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        
+        # 6. 3 Cards Mode
+        st.subheader("💡 3 Mode Analisis Saham Utama")
+        st.markdown("<p style='color:#94a3b8; margin-top:-10px;'>Pilih gaya analisa Anda, setiap mode memiliki parameter indikator dan kalkulasi skor khusus:</p>", unsafe_allow_html=True)
+        col_c1, col_c2, col_c3 = st.columns(3)
+        with col_c1:
+            st.markdown("""
+            <div class="glass-card" style="border-top: 4px solid #ef4444; min-height: 260px;">
+                <h4 style="color:#ef4444; margin-top:0;">⏱️ Scalping Mode</h4>
+                <p style="color:#cbd5e1; font-size:0.88rem; line-height:1.5;">Dirancang untuk perdagangan jangka sangat pendek (hitungan menit s/d 1 hari). Menganalisis momentum intraday harian di atas VWAP, lonjakan volume intraday, spread bid-ask ketat, dan rasio ketebalan Bid vs Ask order book secara live.</p>
+            </div>
+            """, unsafe_allow_html=True)
+        with col_c2:
+            st.markdown("""
+            <div class="glass-card" style="border-top: 4px solid #3b82f6; min-height: 260px;">
+                <h4 style="color:#3b82f6; margin-top:0;">📈 Swing Trading Mode</h4>
+                <p style="color:#cbd5e1; font-size:0.88rem; line-height:1.5;">Dirancang untuk perdagangan jangka pendek s/d menengah (2 hari s/d 30 hari). Fokus mendeteksi pembalikan tren harian (pullback) atau penembusan resistance (breakout) di atas MA20/MA50 didukung data Bandarmologi harian.</p>
+            </div>
+            """, unsafe_allow_html=True)
+        with col_c3:
+            st.markdown("""
+            <div class="glass-card" style="border-top: 4px solid #10b981; min-height: 260px;">
+                <h4 style="color:#10b981; margin-top:0;">🏢 Investment Mode</h4>
+                <p style="color:#cbd5e1; font-size:0.88rem; line-height:1.5;">Dirancang untuk investasi jangka panjang (6 bulan+). Menghitung nilai wajar intrinsik (Graham Fair Value) berbasis earning yield (ROE/ROE), tingkat beban utang (DER), stabilitas arus kas operasional (OCF) dan Margin of Safety.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # 4. Preview Dashboard
+        st.subheader("🖥️ Pratinjau Dashboard & Hasil Screening")
+        st.markdown("<p style='color:#94a3b8; margin-top:-10px;'>Potongan tampilan leaderboard real-time dengan beberapa detail parameter penting dikunci untuk akun Free:</p>", unsafe_allow_html=True)
+        
+        mock_data = [
+            {"Ticker": "BBCA.JK", "Mode": "Investment Mode", "Final Score": 82, "Signal": "Investasi Prioritas", "Risk Level": "Low", "Entry Area": "Rp 8,800 - Rp 9,000", "Target Profit": "Rp 9,800 (TP1)", "Stop Loss": "Rp 8,400"},
+            {"Ticker": "BBRI.JK", "Mode": "Swing Trading Mode", "Final Score": 85, "Signal": "Swing Prioritas", "Risk Level": "Low", "Entry Area": "Rp 4,450 - Rp 4,550", "Target Profit": "Rp 4,800 (TP1)", "Stop Loss": "Rp 4,300"},
+            {"Ticker": "ADRO.JK", "Mode": "Scalping Mode (Beta)", "Final Score": 78, "Signal": "Scalping Prioritas", "Risk Level": "Medium", "Entry Area": "Rp 2,680 - Rp 2,700", "Target Profit": "Rp 2,740 (TP1)", "Stop Loss": "Rp 2,640"},
+            {"Ticker": "TLKM.JK", "Mode": "Swing Trading Mode", "Final Score": 62, "Signal": "Wait and See (Swing)", "Risk Level": "Medium", "Entry Area": "🔒 Login Premium", "Target Profit": "🔒 Login Premium", "Stop Loss": "🔒 Login Premium"},
+            {"Ticker": "ASII.JK", "Mode": "Investment Mode", "Final Score": 58, "Signal": "Wait and See (Investasi)", "Risk Level": "Medium", "Entry Area": "🔒 Login Premium", "Target Profit": "🔒 Login Premium", "Stop Loss": "🔒 Login Premium"},
+            {"Ticker": "GOTO.JK", "Mode": "Scalping Mode (Beta)", "Final Score": 41, "Signal": "Keluar dari Watchlist (Scalping)", "Risk Level": "High", "Entry Area": "🔒 Login Premium", "Target Profit": "🔒 Login Premium", "Stop Loss": "🔒 Login Premium"},
+        ]
+        df_mock = pd.DataFrame(mock_data)
+        st.dataframe(df_mock, use_container_width=True, hide_index=True)
+        st.caption("🔒 *Detail area beli (entry), target profit, stop loss, dan analisis lengkap untuk emiten lainnya disamarkan. Silakan login untuk membuka data lengkap.*")
+        
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        
+        # 7. Free Signal Preview (3 Free Stocks)
+        st.subheader("🎁 Sinyal Gratis Hari Ini (Hook Preview)")
+        st.markdown("<p style='color:#94a3b8; margin-top:-10px;'>Berikut adalah 3 saham dengan score tertinggi hari ini secara gratis:</p>", unsafe_allow_html=True)
+        
+        preview_tabs = st.tabs(["📊 Swing Trade: BBRI", "⏱️ Scalping: ADRO", "🏢 Investasi: BBCA"])
+        with preview_tabs[0]:
+            col_bbri1, col_bbri2 = st.columns([1, 1])
+            with col_bbri1:
+                st.markdown("""
+                <div class="glass-card" style="border-left: 5px solid #10b981; min-height: 250px;">
+                    <h3 style="margin-top:0; color:#10b981; font-weight:800;">BBRI.JK</h3>
+                    <p style="margin:8px 0;"><b>Mode:</b> Swing Trading Mode</p>
+                    <p style="margin:8px 0;"><b>Confidence Score:</b> <span style="font-weight:bold; color:#10b981;">85 / 100</span></p>
+                    <p style="margin:8px 0;"><b>Signal:</b> <span class="badge badge-buy">Swing Prioritas</span></p>
+                    <p style="margin:8px 0;"><b>Risk Level:</b> Low</p>
+                </div>
+                """, unsafe_allow_html=True)
+            with col_bbri2:
+                st.markdown("""
+                <div class="glass-card" style="border-left: 5px solid #3b82f6; min-height: 250px;">
+                    <h4 style="margin-top:0; color:#3b82f6;">Detail Setup Analisis:</h4>
+                    <p style="margin:6px 0;"><b>Entry Area:</b> Rp 4,450 - Rp 4,550</p>
+                    <p style="margin:6px 0;"><b>Target Profit 1 (TP1):</b> Rp 4,800</p>
+                    <p style="margin:6px 0;"><b>Target Profit 2 (TP2):</b> Rp 5,100</p>
+                    <p style="margin:6px 0;"><b>Stop Loss (SL):</b> Rp 4,300</p>
+                    <p style="margin:6px 0; font-size:0.85rem; color:#cbd5e1;"><b>Reasoning:</b> Volume transaksi harian stabil di atas rata-rata diiringi akumulasi asing beruntun 5 hari terakhir di area support kuat MA50.</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+        with preview_tabs[1]:
+            col_adro1, col_adro2 = st.columns([1, 1])
+            with col_adro1:
+                st.markdown("""
+                <div class="glass-card" style="border-left: 5px solid #f59e0b; min-height: 250px;">
+                    <h3 style="margin-top:0; color:#f59e0b; font-weight:800;">ADRO.JK</h3>
+                    <p style="margin:8px 0;"><b>Mode:</b> Scalping Mode (Beta)</p>
+                    <p style="margin:8px 0;"><b>Confidence Score:</b> <span style="font-weight:bold; color:#f59e0b;">78 / 100</span></p>
+                    <p style="margin:8px 0;"><b>Signal:</b> <span class="badge badge-buy">Scalping Prioritas</span></p>
+                    <p style="margin:8px 0;"><b>Risk Level:</b> Medium</p>
+                </div>
+                """, unsafe_allow_html=True)
+            with col_adro2:
+                st.markdown("""
+                <div class="glass-card" style="border-left: 5px solid #3b82f6; min-height: 250px;">
+                    <h4 style="margin-top:0; color:#3b82f6;">Detail Setup Analisis:</h4>
+                    <p style="margin:6px 0;"><b>Entry Area:</b> Rp 2,680 - Rp 2,700</p>
+                    <p style="margin:6px 0;"><b>Target Profit 1 (TP1):</b> Rp 2,740 (1.5%)</p>
+                    <p style="margin:6px 0;"><b>Target Profit 2 (TP2):</b> Rp 2,780 (3.0%)</p>
+                    <p style="margin:6px 0;"><b>Stop Loss (SL):</b> Rp 2,640 (-1.5%)</p>
+                    <p style="margin:6px 0; font-size:0.85rem; color:#cbd5e1;"><b>Reasoning:</b> Lonjakan volume transaksi intraday terdeteksi 2.2x rata-rata dengan harga bergerak konsisten di atas VWAP intraday.</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+        with preview_tabs[2]:
+            col_bbca1, col_bbca2 = st.columns([1, 1])
+            with col_bbca1:
+                st.markdown("""
+                <div class="glass-card" style="border-left: 5px solid #10b981; min-height: 250px;">
+                    <h3 style="margin-top:0; color:#10b981; font-weight:800;">BBCA.JK</h3>
+                    <p style="margin:8px 0;"><b>Mode:</b> Investment Mode</p>
+                    <p style="margin:8px 0;"><b>Confidence Score:</b> <span style="font-weight:bold; color:#10b981;">82 / 100</span></p>
+                    <p style="margin:8px 0;"><b>Signal:</b> <span class="badge badge-buy">Investasi Prioritas</span></p>
+                    <p style="margin:8px 0;"><b>Risk Level:</b> Low</p>
+                </div>
+                """, unsafe_allow_html=True)
+            with col_bbca2:
+                st.markdown("""
+                <div class="glass-card" style="border-left: 5px solid #3b82f6; min-height: 250px;">
+                    <h4 style="margin-top:0; color:#3b82f6;">Detail Setup Analisis:</h4>
+                    <p style="margin:6px 0;"><b>Fair Value Range:</b> Rp 9,400 - Rp 10,800</p>
+                    <p style="margin:6px 0;"><b>Margin of Safety (MOS):</b> +6.5%</p>
+                    <p style="margin:6px 0;"><b>Governance Risk:</b> Low (Baik)</p>
+                    <p style="margin:6px 0; font-size:0.85rem; color:#cbd5e1;"><b>Reasoning:</b> Profitabilitas ROE prima (21.5%) dan DER rendah. Harga saat ini berada di bawah rentang nilai intrinsik dengan margin aman positif.</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.markdown('<div class="header-divider"></div>', unsafe_allow_html=True)
+        
+        # 8. Kenapa Pakai Aplikasi Ini
+        st.subheader("🤔 Kenapa Memilih Smart Saham?")
+        col_w1, col_w2, col_w3 = st.columns(3)
+        with col_w1:
+            st.markdown("""
+            <div class="glass-card" style="min-height: 180px;">
+                <h5 style="margin-top:0;">⚡ Hemat Waktu Analisis</h5>
+                <p style="color:#cbd5e1; font-size:0.85rem; line-height:1.5;">Sistem AI-Scoring kami langsung memindai 800+ saham di Bursa Efek Indonesia secara real-time. Tidak perlu memantau chart manual satu per satu.</p>
+            </div>
+            """, unsafe_allow_html=True)
+        with col_w2:
+            st.markdown("""
+            <div class="glass-card" style="min-height: 180px;">
+                <h5 style="margin-top:0;">📊 Berbasis Probabilitas Data</h5>
+                <p style="color:#cbd5e1; font-size:0.85rem; line-height:1.5;">Seluruh skor dihitung murni berbasis data historis harga, volume, akumulasi broker (Bandarmologi), dan laporan keuangan resmi. Bukan berdasarkan rumor atau bisikan.</p>
+            </div>
+            """, unsafe_allow_html=True)
+        with col_w3:
+            st.markdown("""
+            <div class="glass-card" style="min-height: 180px;">
+                <h5 style="margin-top:0;">🛡️ Dilengkapi Exit Plan & Risiko</h5>
+                <p style="color:#cbd5e1; font-size:0.85rem; line-height:1.5;">Menyediakan visualisasi parameter level risiko (Low/Medium/High), alasan logika sinyal, serta exit plan terukur (Target Profit, Stop Loss, Invalidation Point).</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        
+        # 9. Cara Kerja
+        st.subheader("🛠️ Bagaimana Cara Kerjanya?")
+        col_h1, col_h2, col_h3, col_h4 = st.columns(4)
+        with col_h1:
+            st.markdown("""
+            <div class="glass-card" style="text-align:center; min-height: 200px;">
+                <div style="font-size:2.2rem; margin-bottom:10px;">1️⃣</div>
+                <h5 style="margin-top:0;">Pilih Mode</h5>
+                <p style="color:#cbd5e1; font-size:0.8rem; line-height:1.4;">Tentukan mode analisis yang cocok dengan horizon trading Anda: Scalping, Swing, atau Investasi.</p>
+            </div>
+            """, unsafe_allow_html=True)
+        with col_h2:
+            st.markdown("""
+            <div class="glass-card" style="text-align:center; min-height: 200px;">
+                <div style="font-size:2.2rem; margin-bottom:10px;">2️⃣</div>
+                <h5 style="margin-top:0;">Lihat Score</h5>
+                <p style="color:#cbd5e1; font-size:0.8rem; line-height:1.4;">Urutkan leaderboard untuk menemukan emiten berskor tertinggi yang memiliki probabilitas terbaik.</p>
+            </div>
+            """, unsafe_allow_html=True)
+        with col_h3:
+            st.markdown("""
+            <div class="glass-card" style="text-align:center; min-height: 200px;">
+                <div style="font-size:2.2rem; margin-bottom:10px;">3️⃣</div>
+                <h5 style="margin-top:0;">Pahami Reasoning</h5>
+                <p style="color:#cbd5e1; font-size:0.8rem; line-height:1.4;">Pelajari alasan kalkulasi indikator di balik sinyal beserta batasan risiko exit-nya.</p>
+            </div>
+            """, unsafe_allow_html=True)
+        with col_h4:
+            st.markdown("""
+            <div class="glass-card" style="text-align:center; min-height: 200px;">
+                <div style="font-size:2.2rem; margin-bottom:10px;">4️⃣</div>
+                <h5 style="margin-top:0;">Track Portofolio</h5>
+                <p style="color:#cbd5e1; font-size:0.8rem; line-height:1.4;">Catat entri beli/jual di log transaksi untuk memantau performa akurasi secara berkala.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.markdown('<div class="header-divider"></div>', unsafe_allow_html=True)
+        
+        # 10. Pricing Teaser
+        st.subheader("💎 Paket Layanan Smart Saham")
+        col_p1, col_p2 = st.columns(2)
+        with col_p1:
+            st.markdown("""
+            <div class="glass-card" style="border-top: 4px solid #94a3b8; min-height: 280px;">
+                <h4 style="margin-top:0; color:#94a3b8;">🆓 Paket FREE</h4>
+                <h2 style="margin-top:5px; margin-bottom:15px;">Rp 0 <span style="font-size:0.85rem; font-weight:normal; color:#94a3b8;">/ Selamanya</span></h2>
+                <ul style="color:#cbd5e1; font-size:0.85rem; padding-left:20px; line-height:1.6;">
+                    <li>3 Saham preview harian gratis (BBRI, ADRO, BBCA)</li>
+                    <li>Snapshot pasar harian terbatas</li>
+                    <li>Sinyal, reasoning, & setup terkunci untuk emiten lainnya</li>
+                    <li>Tanpa alert Telegram & portofolio tracking</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+        with col_p2:
+            st.markdown("""
+            <div class="glass-card" style="border-top: 4px solid #f59e0b; min-height: 280px; background: rgba(245, 158, 11, 0.04);">
+                <h4 style="margin-top:0; color:#f59e0b;">👑 Paket PRO PREMIUM</h4>
+                <h2 style="margin-top:5px; margin-bottom:15px; color:#f59e0b;">Premium Access</h2>
+                <ul style="color:#cbd5e1; font-size:0.85rem; padding-left:20px; line-height:1.6;">
+                    <li>Akses penuh 3 mode analisis (800+ Saham IDX)</li>
+                    <li>Watchlist Prioritas harian ter-update secara otomatis</li>
+                    <li>Detail Entry Area, Target Profit (TP1/TP2) & Stop Loss lengkap</li>
+                    <li>Peta faktor risiko & alasan sinyal komprehensif</li>
+                    <li>Notifikasi Alert Telegram Bot instan</li>
+                    <li>Fitur simulasi portofolio & dashboard akurasi sinyal</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        
+        # Bottom final CTA to toggle show_auth
+        st.markdown("""
+        <div class="login-container" style="max-width: 100%; padding: 40px; margin-top:20px;">
+            <h3 style="margin-top:0;">Siap Mengambil Keputusan Investasi Berbasis Data?</h3>
+            <p style="color:#94a3b8; font-size:1.05rem;">Dapatkan akses instan ke 3 saham berskor tertinggi hari ini secara gratis.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        col_bt1, col_bt2, col_bt3 = st.columns([1, 2, 1])
+        with col_bt2:
+            if st.button("🔐 Masuk ke Akun Premium / Buat Akun Baru Sekarang", use_container_width=True, type="primary"):
+                st.session_state["show_auth"] = True
+                st.rerun()
+                
+        st.write("")
+        st.write("")
+        st.markdown("<center><p style='color:#64748b; font-size:0.78rem; line-height:1.5;'>⚠️ <b>Disclaimer Regulasi (OJK)</b>: Smart Saham Premium adalah platform screening data & risk monitoring berbasis probabilitas analisis data historis saham. Aplikasi ini bukan platform pemberi rekomendasi final atau ajakan beli/jual investasi. Seluruh keputusan finansial berada di bawah tanggung jawab pribadi Anda secara mandiri.</p></center>", unsafe_allow_html=True)
+        st.stop()
 
 # ----------------- LOGGED IN APPLICATION INTERFACE -----------------
 
@@ -250,6 +593,7 @@ with col_header_user:
         storage.log_activity(st.session_state["username"], "LOGOUT")
         st.session_state["logged_in"] = False
         st.session_state["username"] = ""
+        st.session_state["show_auth"] = False
         st.rerun()
 
 st.markdown('<div class="header-divider"></div>', unsafe_allow_html=True)
