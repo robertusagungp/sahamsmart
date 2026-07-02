@@ -282,8 +282,7 @@ def calculate_swing_score(indicators: Dict, broker_df: Optional[pd.DataFrame], f
         signal = "Swing Prioritas"
     elif (score < 45 or 
           rsi > 82 or 
-          rsi < 28 or 
-          (close < ma20 and close < ma50)):
+          rsi < 28):
         signal = "Keluar dari Watchlist (Swing)"
     else:
         signal = "Wait and See (Swing)"
