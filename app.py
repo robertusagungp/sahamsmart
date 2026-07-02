@@ -266,6 +266,10 @@ if not st.session_state["logged_in"]:
                     if storage.authenticate_user(login_username, login_password):
                         st.session_state["logged_in"] = True
                         st.session_state["username"] = login_username.lower()
+                        # Fetch profile and load into session state
+                        profile = storage.get_user_profile(login_username)
+                        st.session_state["user_plan"] = profile["plan"]
+                        st.session_state["user_selected_mode"] = profile["active_mode"]
                         # Log login activity
                         storage.log_activity(login_username, "LOGIN")
                         st.success("Login sukses! Membuka dashboard...")
@@ -647,7 +651,9 @@ with col_header_title:
         st.caption("Aplikasi ini bukan platform pemberi rekomendasi investasi final untuk beli/jual saham, melainkan platform penyaring data (*AI Stock Screening*) & pemantauan risiko (*Risk Monitoring*) untuk membantu riset mandiri Anda.")
 with col_header_user:
     st.write("")
-    st.markdown(f"👤 Akun: **{st.session_state['username'].upper()}**")
+    is_admin = st.session_state["username"] == "fra"
+    role_label = "Admin" if is_admin else "Customer"
+    st.markdown(f"👤 Akun: **{st.session_state['username'].upper()}** `({role_label})`")
     
     # Plan Simulator Selector (Compact & Clean)
     with st.expander("👤 Status & Paket Layanan", expanded=True):
@@ -659,24 +665,37 @@ with col_header_user:
         )
         
         # Sync to session state
-        if sim_plan == "Free Plan":
-            st.session_state["user_plan"] = "Free"
-        elif sim_plan == "1 Mode Plan":
-            st.session_state["user_plan"] = "1 Mode"
-        else:
-            st.session_state["user_plan"] = "All Mode"
+        new_plan = "Free"
+        if sim_plan == "1 Mode Plan":
+            new_plan = "1 Mode"
+        elif sim_plan == "All Mode Plan":
+            new_plan = "All Mode"
+            
+        new_mode = st.session_state["user_selected_mode"]
             
         # Select active mode for 1 Mode
-        if st.session_state["user_plan"] == "1 Mode":
+        if new_plan == "1 Mode":
             sim_unlocked = st.selectbox(
                 "Pilih Mode Aktif Anda:",
                 options=["Swing Trading Mode", "Scalping Mode (Beta)", "Investment Mode"],
                 index=["Swing Trading Mode", "Scalping Mode (Beta)", "Investment Mode"].index(st.session_state["user_selected_mode"]),
                 key="header_mode_sim"
             )
-            st.session_state["user_selected_mode"] = sim_unlocked
+            new_mode = sim_unlocked
+            
+        # Detect changes and save persistently to DB
+        if (new_plan != st.session_state["user_plan"]) or (new_plan == "1 Mode" and new_mode != st.session_state["user_selected_mode"]):
+            # Update DB/CSV
+            storage.update_user_profile(st.session_state["username"], new_plan, new_mode)
+            # Update session state
+            st.session_state["user_plan"] = new_plan
+            st.session_state["user_selected_mode"] = new_mode
+            st.toast("💾 Paket terupdate secara permanen di database!", icon="✅")
+            st.rerun()
             
         st.caption(f"Paket Aktif: **{st.session_state['user_plan']}**")
+        if st.session_state["user_plan"] == "1 Mode":
+            st.caption(f"Mode Unlocked: **{st.session_state['user_selected_mode']}**")
         
     if st.button("🚪 Keluar Akun (Logout)", use_container_width=True):
         storage.log_activity(st.session_state["username"], "LOGOUT")

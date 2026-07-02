@@ -84,7 +84,9 @@ class AnalysisStorage:
                 Column('username', String(50), nullable=False, unique=True),
                 Column('password_hash', String(100), nullable=False),
                 Column('email', String(100), nullable=True),
-                Column('created_at', DateTime, default=datetime.utcnow)
+                Column('created_at', DateTime, default=datetime.utcnow),
+                Column('plan', String(20), default='All Mode'),
+                Column('active_mode', String(50), default='Swing Trading Mode')
             )
             
             # 3. User Activity Logs Table
@@ -181,6 +183,21 @@ class AnalysisStorage:
                 except Exception as ex:
                     print(f"Migration warning: {ex}")
                     
+            # Self-healing migration for users table plan and active_mode
+            try:
+                from sqlalchemy import text
+                with self.engine.begin() as conn:
+                    conn.execute(text("SELECT plan FROM users LIMIT 1"))
+            except Exception:
+                try:
+                    from sqlalchemy import text
+                    with self.engine.begin() as conn:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN plan VARCHAR(20) DEFAULT 'All Mode'"))
+                        conn.execute(text("ALTER TABLE users ADD COLUMN active_mode VARCHAR(50) DEFAULT 'Swing Trading Mode'"))
+                        print("Migration: plan and active_mode columns successfully added to users table.")
+                except Exception as ex:
+                    print(f"Migration warning for users table: {ex}")
+                    
             print("Database tables initialized successfully.")
         except Exception as e:
             print(f"Error creating database tables: {str(e)}")
@@ -214,7 +231,7 @@ class AnalysisStorage:
                         
                     # Insert user
                     conn.execute(
-                        text("INSERT INTO users (username, password_hash, email, created_at) VALUES (:u, :p, :e, :c)"),
+                        text("INSERT INTO users (username, password_hash, email, created_at, plan, active_mode) VALUES (:u, :p, :e, :c, 'All Mode', 'Swing Trading Mode')"),
                         {"u": username, "p": password_hash, "e": email, "c": created_at}
                     )
                 return {"success": True, "message": "Registrasi berhasil! Silakan login."}
@@ -230,13 +247,15 @@ class AnalysisStorage:
                 if not df_users.empty and username in df_users['username'].astype(str).str.lower().values:
                     return {"success": False, "message": "Username sudah terdaftar."}
             else:
-                df_users = pd.DataFrame(columns=['username', 'password_hash', 'email', 'created_at'])
+                df_users = pd.DataFrame(columns=['username', 'password_hash', 'email', 'created_at', 'plan', 'active_mode'])
                 
             new_user = pd.DataFrame([{
                 'username': username,
                 'password_hash': password_hash,
                 'email': email,
-                'created_at': created_at.strftime('%Y-%m-%d %H:%M:%S')
+                'created_at': created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                'plan': 'All Mode',
+                'active_mode': 'Swing Trading Mode'
             }])
             df_users = pd.concat([df_users, new_user], ignore_index=True)
             df_users.to_csv(self.users_csv_path, index=False)
@@ -279,6 +298,92 @@ class AnalysisStorage:
                 print(f"CSV Auth error: {str(e)}")
                 
         return False
+
+    def get_user_profile(self, username: str) -> Dict[str, Any]:
+        """
+        Retrieves user plan and active_mode.
+        """
+        username = username.strip().lower()
+        # Default fallback
+        profile = {"plan": "All Mode", "active_mode": "Swing Trading Mode"}
+        
+        # 1. SQL Database Fetch
+        if self.engine:
+            try:
+                from sqlalchemy import text
+                with self.engine.connect() as conn:
+                    result = conn.execute(
+                        text("SELECT plan, active_mode FROM users WHERE LOWER(username) = :u"),
+                        {"u": username}
+                    ).fetchone()
+                    if result:
+                        profile["plan"] = result[0] or "All Mode"
+                        profile["active_mode"] = result[1] or "Swing Trading Mode"
+            except Exception as e:
+                print(f"Error fetching user profile from DB: {str(e)}")
+                
+        # 2. CSV Fetch Fallback
+        elif os.path.exists(self.users_csv_path):
+            try:
+                df_users = pd.read_csv(self.users_csv_path)
+                if not df_users.empty:
+                    # check if cols exist
+                    if 'plan' not in df_users.columns:
+                        df_users['plan'] = 'All Mode'
+                    if 'active_mode' not in df_users.columns:
+                        df_users['active_mode'] = 'Swing Trading Mode'
+                    
+                    match = df_users[df_users['username'].astype(str).str.lower() == username]
+                    if not match.empty:
+                        profile["plan"] = match.iloc[0].get("plan", "All Mode")
+                        profile["active_mode"] = match.iloc[0].get("active_mode", "Swing Trading Mode")
+            except Exception as e:
+                print(f"CSV profile fetch error: {str(e)}")
+                
+        return profile
+
+    def update_user_profile(self, username: str, plan: str, active_mode: str) -> bool:
+        """
+        Updates user plan and active_mode in DB and CSV.
+        """
+        username = username.strip().lower()
+        success_db = False
+        success_csv = False
+        
+        # 1. SQL Database Update
+        if self.engine:
+            try:
+                from sqlalchemy import text
+                with self.engine.begin() as conn:
+                    conn.execute(
+                        text("UPDATE users SET plan = :plan, active_mode = :mode WHERE LOWER(username) = :u"),
+                        {"plan": plan, "mode": active_mode, "u": username}
+                    )
+                success_db = True
+            except Exception as e:
+                print(f"Error updating user profile in DB: {str(e)}")
+                
+        # 2. CSV Update Fallback
+        if os.path.exists(self.users_csv_path):
+            try:
+                df_users = pd.read_csv(self.users_csv_path)
+                if not df_users.empty:
+                    if 'plan' not in df_users.columns:
+                        df_users['plan'] = 'All Mode'
+                    if 'active_mode' not in df_users.columns:
+                        df_users['active_mode'] = 'Swing Trading Mode'
+                        
+                    # Find index
+                    idx = df_users[df_users['username'].astype(str).str.lower() == username].index
+                    if not idx.empty:
+                        df_users.loc[idx, 'plan'] = plan
+                        df_users.loc[idx, 'active_mode'] = active_mode
+                        df_users.to_csv(self.users_csv_path, index=False)
+                        success_csv = True
+            except Exception as e:
+                print(f"CSV profile update error: {str(e)}")
+                
+        return success_db or success_csv
 
     # ================= USER ACTIVITY LOGGING MODULE =================
 
