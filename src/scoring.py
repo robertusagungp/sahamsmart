@@ -459,18 +459,36 @@ def calculate_investment_score(financials: Dict[str, Any], close_price: float) -
     eps_prop = close_price / per_val
     bvps_prop = close_price / pbv_val
     
-    # Classic Graham Intrinsic Value Formula (V = sqrt(22.5 * EPS * BVPS))
+    # Dynamic target multiples based on company's ROE quality
+    roe_val = financials.get("ROE", 10.0)
+    if roe_val >= 20.0:
+        target_per = 22.0
+        target_pbv = 2.8
+    elif roe_val >= 14.0:
+        target_per = 18.0
+        target_pbv = 1.8
+    elif roe_val >= 8.0:
+        target_per = 14.0
+        target_pbv = 1.2
+    else:
+        target_per = 10.0
+        target_pbv = 0.8
+        
+    graham_mult = target_per * target_pbv
+    
+    # Classic Graham Intrinsic Value Formula (V = sqrt(graham_mult * EPS * BVPS))
     if eps_prop <= 0 or bvps_prop <= 0:
         fair_value = max(0.0, bvps_prop * 0.8)
     else:
-        fair_value = np.sqrt(22.5 * eps_prop * bvps_prop)
+        fair_value = np.sqrt(graham_mult * eps_prop * bvps_prop)
         
     if fair_value <= 0:
         fair_value = close_price
         
     fv_lower = fair_value * 0.85
     fv_upper = fair_value * 1.15
-    mos = ((fair_value - close_price) / fair_value) * 100
+    # Calculate MOS relative to close_price (market price) to bound it logically
+    mos = ((fair_value - close_price) / close_price) * 100
     
     # Investment View Action
     inv_view = "Wait and See (Investasi)"
