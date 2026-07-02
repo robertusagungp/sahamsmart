@@ -137,7 +137,8 @@ class AnalysisStorage:
                 Column('status', String(20), default="Open Position"),
                 Column('user_notes', String(255), nullable=True),
                 Column('created_at', DateTime, default=datetime.utcnow),
-                Column('updated_at', DateTime, default=datetime.utcnow)
+                Column('updated_at', DateTime, default=datetime.utcnow),
+                Column('analysis_mode', String(30), default="Swing")
             )
             
             # 6. Trade Evaluation Table
@@ -165,6 +166,21 @@ class AnalysisStorage:
             )
             
             metadata.create_all(self.engine)
+            
+            # Self-healing migration for existing databases
+            try:
+                from sqlalchemy import text
+                with self.engine.begin() as conn:
+                    conn.execute(text("SELECT analysis_mode FROM real_trades LIMIT 1"))
+            except Exception:
+                try:
+                    from sqlalchemy import text
+                    with self.engine.begin() as conn:
+                        conn.execute(text("ALTER TABLE real_trades ADD COLUMN analysis_mode VARCHAR(30) DEFAULT 'Swing'"))
+                        print("Migration: analysis_mode column successfully added to real_trades table.")
+                except Exception as ex:
+                    print(f"Migration warning: {ex}")
+                    
             print("Database tables initialized successfully.")
         except Exception as e:
             print(f"Error creating database tables: {str(e)}")
@@ -482,7 +498,7 @@ class AnalysisStorage:
 
     # ================= REAL TRADES & EVALUATIONS OPERATIONS =================
 
-    def add_real_trade(self, username: str, ticker: str, buy_date: Any, buy_price: float, lot_quantity: int, score_data: Dict[str, Any], user_notes: str = "") -> bool:
+    def add_real_trade(self, username: str, ticker: str, buy_date: Any, buy_price: float, lot_quantity: int, score_data: Dict[str, Any], user_notes: str = "", analysis_mode: str = "Swing") -> bool:
         if not self.engine:
             return False
         try:
@@ -495,12 +511,12 @@ class AnalysisStorage:
                         username, ticker, buy_date, buy_price, lot_quantity, total_value,
                         app_signal_at_buy, technical_score_at_buy, flow_score_at_buy, final_score_at_buy,
                         entry_area_at_buy, tp1_at_buy, tp2_at_buy, sl_at_buy, reason_at_buy, risk_note_at_buy,
-                        status, user_notes, created_at, updated_at
+                        status, user_notes, created_at, updated_at, analysis_mode
                     ) VALUES (
                         :username, :ticker, :buy_date, :buy_price, :lot_quantity, :total_value,
                         :app_signal, :tech_score, :flow_score, :final_score,
                         :entry_area, :tp1, :tp2, :sl, :reason, :risk_note,
-                        'Open Position', :user_notes, :now, :now
+                        'Open Position', :user_notes, :now, :now, :analysis_mode
                     )
                 """
                 params = {
@@ -511,17 +527,18 @@ class AnalysisStorage:
                     "lot_quantity": lot_quantity,
                     "total_value": total_value,
                     "app_signal": score_data.get("recommendation", "Watchlist Prioritas"),
-                    "tech_score": score_data.get("technical_score", 0),
-                    "flow_score": score_data.get("flow_score", 0),
+                    "tech_score": score_data.get("technical_score", 0) if score_data.get("technical_score") is not None else score_data.get("score", 0),
+                    "flow_score": score_data.get("flow_score", 0) if score_data.get("flow_score") is not None else score_data.get("score", 0),
                     "final_score": score_data.get("final_score", score_data.get("score", 0)),
                     "entry_area": score_data.get("entry_area", ""),
                     "tp1": float(score_data.get("tp1", 0)) if isinstance(score_data.get("tp1"), (int, float)) else 0.0,
                     "tp2": float(score_data.get("tp2", 0)) if isinstance(score_data.get("tp2"), (int, float)) else 0.0,
                     "sl": float(score_data.get("sl", 0)) if isinstance(score_data.get("sl"), (int, float)) else 0.0,
-                    "reason": score_data.get("entry_reason", ""),
-                    "risk_note": "; ".join([r.replace("[Teknikal] ", "").replace("[Flow] ", "").replace("[Sinyal] ", "") for r in score_data.get("risks", []) if "Tidak ada" not in r][:2]),
+                    "reason": score_data.get("entry_reason", "") if score_data.get("entry_reason") else (score_data.get("reasons")[0] if score_data.get("reasons") else ""),
+                    "risk_note": "; ".join([r.replace("[Teknikal] ", "").replace("[Flow] ", "").replace("[Sinyal] ", "").replace("[Investasi] ", "").replace("[Scalping] ", "") for r in score_data.get("risks", []) if "Tidak ada" not in r][:2]),
                     "user_notes": user_notes,
-                    "now": datetime.utcnow()
+                    "now": datetime.utcnow(),
+                    "analysis_mode": analysis_mode
                 }
                 if hasattr(conn, "conn"):
                     conn.conn.execute(text(query_str), params)
