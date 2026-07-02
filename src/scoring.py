@@ -450,10 +450,24 @@ def calculate_investment_score(financials: Dict[str, Any], close_price: float) -
     elif ocf < 0:
         cf_quality = "Poor"
         
-    # Fair Value and Margin of Safety (Graham Formula approach or EPS multiple)
-    fair_value = (eps * 13 + bvps * 1.2) / 2
+    # Proportional EPS and BVPS based on close price to match PER/PBV multiples
+    per_val = financials.get("PER", 15.0)
+    pbv_val = financials.get("PBV", 1.5)
+    if per_val <= 0: per_val = 15.0
+    if pbv_val <= 0: pbv_val = 1.5
+    
+    eps_prop = close_price / per_val
+    bvps_prop = close_price / pbv_val
+    
+    # Classic Graham Intrinsic Value Formula (V = sqrt(22.5 * EPS * BVPS))
+    if eps_prop <= 0 or bvps_prop <= 0:
+        fair_value = max(0.0, bvps_prop * 0.8)
+    else:
+        fair_value = np.sqrt(22.5 * eps_prop * bvps_prop)
+        
     if fair_value <= 0:
-        fair_value = close_price * 1.1 # Default safe
+        fair_value = close_price
+        
     fv_lower = fair_value * 0.85
     fv_upper = fair_value * 1.15
     mos = ((fair_value - close_price) / fair_value) * 100
