@@ -85,7 +85,7 @@ class AnalysisStorage:
                 Column('password_hash', String(100), nullable=False),
                 Column('email', String(100), nullable=True),
                 Column('created_at', DateTime, default=datetime.utcnow),
-                Column('plan', String(30), default='Smart Saham Radar Free'),
+                Column('plan', String(50), default='Smart Saham Radar Free'),
                 Column('active_mode', String(50), default='Swing Trading Mode'),
                 Column('role', String(20), default='customer')
             )
@@ -186,7 +186,7 @@ class AnalysisStorage:
                     
             # Self-healing migration for users table plan, active_mode, and role (each checked individually!)
             for col_name, sql_type, default_val in [
-                ("plan", "VARCHAR(30)", "'Smart Saham Radar Free'"),
+                ("plan", "VARCHAR(50)", "'Smart Saham Radar Free'"),
                 ("active_mode", "VARCHAR(50)", "'Swing Trading Mode'"),
                 ("role", "VARCHAR(20)", "'customer'")
             ]:
@@ -203,6 +203,16 @@ class AnalysisStorage:
                     except Exception as ex:
                         # Ignore if already exists
                         pass
+
+            # Expand plan column type to VARCHAR(50) if it is currently smaller (PostgreSQL specific)
+            try:
+                from sqlalchemy import text
+                if self.engine and "postgresql" in str(self.engine.url):
+                    with self.engine.begin() as conn:
+                        conn.execute(text("ALTER TABLE users ALTER COLUMN plan TYPE VARCHAR(50)"))
+                        print("Migration: Expanded plan column type to VARCHAR(50) in PostgreSQL.")
+            except Exception as ex:
+                print(f"Migration warning when altering plan column type: {ex}")
 
             # Run persistent data migration (update admin roles and convert plan values)
             try:
