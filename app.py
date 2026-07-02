@@ -229,6 +229,10 @@ if "username" not in st.session_state:
     st.session_state["username"] = ""
 if "show_auth" not in st.session_state:
     st.session_state["show_auth"] = False
+if "user_plan" not in st.session_state:
+    st.session_state["user_plan"] = "Free"
+if "user_selected_mode" not in st.session_state:
+    st.session_state["user_selected_mode"] = "Swing Trading Mode"
 
 # Render landing page or login portal if not logged in
 if not st.session_state["logged_in"]:
@@ -561,32 +565,52 @@ if not st.session_state["logged_in"]:
         
         # 10. Pricing Teaser
         st.subheader("💎 Paket Layanan Smart Saham")
-        col_p1, col_p2 = st.columns(2)
+        col_p1, col_p2, col_p3 = st.columns(3)
         with col_p1:
             st.markdown("""
-            <div class="glass-card" style="border-top: 4px solid #94a3b8; min-height: 280px;">
+            <div class="glass-card" style="border-top: 4px solid #94a3b8; min-height: 380px;">
                 <h4 style="margin-top:0; color:#94a3b8;">🆓 Paket FREE</h4>
-                <h2 style="margin-top:5px; margin-bottom:15px;">Rp 0 <span style="font-size:0.85rem; font-weight:normal; color:#94a3b8;">/ Selamanya</span></h2>
-                <ul style="color:#cbd5e1; font-size:0.85rem; padding-left:20px; line-height:1.6;">
-                    <li>3 Saham preview harian gratis (BBRI, ADRO, BBCA)</li>
-                    <li>Snapshot pasar harian terbatas</li>
-                    <li>Sinyal, reasoning, & setup terkunci untuk emiten lainnya</li>
-                    <li>Tanpa alert Telegram & portofolio tracking</li>
+                <h2 style="margin-top:5px; margin-bottom:5px;">Rp 0</h2>
+                <p style="color:#64748b; font-size:0.8rem; margin-bottom:15px;">Mencoba Value Awal Aplikasi</p>
+                <ul style="color:#cbd5e1; font-size:0.82rem; padding-left:15px; line-height:1.5; margin-top:10px;">
+                    <li>Preview 3 saham berskor tertinggi per hari</li>
+                    <li>Snapshot tren pasar & IHSG harian</li>
+                    <li>Watchlist maksimal 3 saham</li>
+                    <li>Log riwayat sinyal maksimal 3 hari</li>
+                    <li>❌ Reasoning & parameter entry/exit dikunci</li>
+                    <li>❌ Tidak bisa akses grup Telegram Premium</li>
                 </ul>
             </div>
             """, unsafe_allow_html=True)
         with col_p2:
             st.markdown("""
-            <div class="glass-card" style="border-top: 4px solid #f59e0b; min-height: 280px; background: rgba(245, 158, 11, 0.04);">
-                <h4 style="margin-top:0; color:#f59e0b;">👑 Paket PRO PREMIUM</h4>
-                <h2 style="margin-top:5px; margin-bottom:15px; color:#f59e0b;">Premium Access</h2>
-                <ul style="color:#cbd5e1; font-size:0.85rem; padding-left:20px; line-height:1.6;">
-                    <li>Akses penuh 3 mode analisis (800+ Saham IDX)</li>
-                    <li>Watchlist Prioritas harian ter-update secara otomatis</li>
-                    <li>Detail Entry Area, Target Profit (TP1/TP2) & Stop Loss lengkap</li>
-                    <li>Peta faktor risiko & alasan sinyal komprehensif</li>
-                    <li>Notifikasi Alert Telegram Bot instan</li>
-                    <li>Fitur simulasi portofolio & dashboard akurasi sinyal</li>
+            <div class="glass-card" style="border-top: 4px solid #3b82f6; min-height: 380px;">
+                <h4 style="margin-top:0; color:#3b82f6;">📈 Paket 1 MODE</h4>
+                <h2 style="margin-top:5px; margin-bottom:5px;">Rp 89.000 <span style="font-size:0.8rem; font-weight:normal; color:#94a3b8;">/ bln</span></h2>
+                <p style="color:#64748b; font-size:0.8rem; margin-bottom:15px;">Rp 890.000 / tahun (Hemat 2 bulan)</p>
+                <ul style="color:#cbd5e1; font-size:0.82rem; padding-left:15px; line-height:1.5; margin-top:10px;">
+                    <li><b>Akses Penuh 1 Mode Pilihan:</b> Scalping, Swing, ATAU Investasi</li>
+                    <li>Full reasoning & setup entry/exit mode pilihan</li>
+                    <li>Watchlist maksimal 20 saham</li>
+                    <li>Log riwayat sinyal hingga 30 hari</li>
+                    <li>Simulasi tracking portofolio terbatas</li>
+                    <li><b>Bisa join grup Telegram Premium</b></li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+        with col_p3:
+            st.markdown("""
+            <div class="glass-card" style="border-top: 4px solid #f59e0b; min-height: 380px; background: rgba(245, 158, 11, 0.03);">
+                <h4 style="margin-top:0; color:#f59e0b;">👑 ALL MODE <span style="background-color:#d97706; color:#ffffff; font-size:0.7rem; padding:2px 8px; border-radius:10px; font-weight:bold; margin-left:5px; text-transform:uppercase;">Best Value</span></h4>
+                <h2 style="margin-top:5px; margin-bottom:5px; color:#f59e0b;">Rp 179.000 <span style="font-size:0.8rem; font-weight:normal; color:#94a3b8;">/ bln</span></h2>
+                <p style="color:#64748b; font-size:0.8rem; margin-bottom:15px;">Rp 1.790.000 / tahun (Hemat 2 bulan)</p>
+                <ul style="color:#cbd5e1; font-size:0.82rem; padding-left:15px; line-height:1.5; margin-top:10px;">
+                    <li><b>Akses Penuh Ke Seluruh Mode Analisis</b> (Scalping, Swing, & Investasi)</li>
+                    <li>Full reasoning & setup entry/exit semua mode</li>
+                    <li>Watchlist Tanpa Batas (Unlimited)</li>
+                    <li>Log riwayat sinyal penuh hingga 90 hari</li>
+                    <li>Simulasi tracking portofolio tanpa batas</li>
+                    <li><b>Bisa join grup Telegram Premium</b></li>
                 </ul>
             </div>
             """, unsafe_allow_html=True)
@@ -623,7 +647,37 @@ with col_header_title:
         st.caption("Aplikasi ini bukan platform pemberi rekomendasi investasi final untuk beli/jual saham, melainkan platform penyaring data (*AI Stock Screening*) & pemantauan risiko (*Risk Monitoring*) untuk membantu riset mandiri Anda.")
 with col_header_user:
     st.write("")
-    st.markdown(f"👤 Akun: **{st.session_state['username'].upper()}** `[Premium Active]`")
+    st.markdown(f"👤 Akun: **{st.session_state['username'].upper()}**")
+    
+    # Plan Simulator Selector (Compact & Clean)
+    with st.expander("👤 Status & Paket Layanan", expanded=True):
+        sim_plan = st.selectbox(
+            "Simulasi Paket:",
+            options=["Free Plan", "1 Mode Plan", "All Mode Plan"],
+            index=0 if st.session_state["user_plan"] == "Free" else (1 if st.session_state["user_plan"] == "1 Mode" else 2),
+            key="header_plan_sim"
+        )
+        
+        # Sync to session state
+        if sim_plan == "Free Plan":
+            st.session_state["user_plan"] = "Free"
+        elif sim_plan == "1 Mode Plan":
+            st.session_state["user_plan"] = "1 Mode"
+        else:
+            st.session_state["user_plan"] = "All Mode"
+            
+        # Select active mode for 1 Mode
+        if st.session_state["user_plan"] == "1 Mode":
+            sim_unlocked = st.selectbox(
+                "Pilih Mode Aktif Anda:",
+                options=["Swing Trading Mode", "Scalping Mode (Beta)", "Investment Mode"],
+                index=["Swing Trading Mode", "Scalping Mode (Beta)", "Investment Mode"].index(st.session_state["user_selected_mode"]),
+                key="header_mode_sim"
+            )
+            st.session_state["user_selected_mode"] = sim_unlocked
+            
+        st.caption(f"Paket Aktif: **{st.session_state['user_plan']}**")
+        
     if st.button("🚪 Keluar Akun (Logout)", use_container_width=True):
         storage.log_activity(st.session_state["username"], "LOGOUT")
         st.session_state["logged_in"] = False
@@ -947,23 +1001,29 @@ if "results" in st.session_state and st.session_state["results"]:
             "📊 Screener & Ranking", 
             "📜 Histori Rekomendasi", 
             "💼 Simulasi & Log Portofolio", 
-            "📢 Social Report", 
+            "📢 Telegram Paid Group",
+            "🎨 Share Card & Laporan",
             "🔐 Audit Aktivitas User (Neon DB)"
         ])
         tab_screener = tabs[0]
         tab_history = tabs[1]
         tab_portfolio = tabs[2]
-        tab_social = tabs[3]
-        tab_activities = tabs[4]
+        tab_telegram = tabs[3]
+        tab_social = tabs[4]
+        tab_activities = tabs[5]
     else:
         tabs = st.tabs([
             "📊 Screener & Ranking", 
+            "📜 Histori Rekomendasi",
             "💼 Simulasi & Log Portofolio", 
-            "📢 Social Report"
+            "📢 Telegram Paid Group",
+            "🎨 Share Card & Laporan"
         ])
         tab_screener = tabs[0]
-        tab_portfolio = tabs[1]
-        tab_social = tabs[2]
+        tab_history = tabs[1]
+        tab_portfolio = tabs[2]
+        tab_telegram = tabs[3]
+        tab_social = tabs[4]
     
     with tab_screener:
         # Helper to map signal to regulatory-friendly Indonesian terms
@@ -1086,6 +1146,29 @@ if "results" in st.session_state and st.session_state["results"]:
         # Apply dynamic signal filtering
         df_table_filtered = df_table[df_table['Signal'].apply(clean_signal_name).isin(signal_filter)].reset_index(drop=True)
         
+        # Apply dynamic plan-based masking and row slicing
+        is_free = (st.session_state["user_plan"] == "Free")
+        is_1_mode = (st.session_state["user_plan"] == "1 Mode")
+        user_unlocked_mode = st.session_state.get("user_selected_mode", "Swing Trading Mode")
+        
+        if is_free:
+            # Slice to max 3 stocks
+            df_table_filtered = df_table_filtered.head(3).copy()
+            # Mask sensitive detail columns
+            mask_cols = ["Entry Area", "SL", "TP1", "TP2", "Fair Value Range", "Margin of Safety", "Main Reason", "Risk Reward", "Risk Note"]
+            for col in mask_cols:
+                if col in df_table_filtered.columns:
+                    df_table_filtered[col] = "🔒 Hubungkan Premium"
+        elif is_1_mode:
+            # Slice to max 20 stocks
+            df_table_filtered = df_table_filtered.head(20).copy()
+            # If current active screening mode does not match user's purchased mode, mask detail columns
+            if selected_mode != user_unlocked_mode:
+                mask_cols = ["Entry Area", "SL", "TP1", "TP2", "Fair Value Range", "Margin of Safety", "Main Reason", "Risk Reward", "Risk Note"]
+                for col in mask_cols:
+                    if col in df_table_filtered.columns:
+                        df_table_filtered[col] = "🔒 Buka di All Mode"
+        
         def style_recommendation(val):
             val_clean = clean_signal_name(val)
             if val_clean == "Watchlist Prioritas":
@@ -1128,396 +1211,428 @@ if "results" in st.session_state and st.session_state["results"]:
         stock_details = next(r for r in results if r["ticker"] == selected_stock)
         stock_hist = histories[selected_stock]
         
-        col_det_left, col_det_right = st.columns([5, 3])
+        # Check if current mode is locked for details based on plan
+        mode_is_locked = False
+        paywall_reason = ""
         
-        with col_det_left:
-            st.markdown(f"##### Grafik Candlestick, MA, & Price Channels (20D Support/Resistance): **{selected_stock}**")
-            
-            # Chart period selector
-            chart_range = st.radio("Rentang Tampilan:", ["3 Bulan", "6 Bulan", "1 Tahun"], horizontal=True, key="c_range")
-            if chart_range == "3 Bulan":
-                df_chart = stock_hist.tail(60).copy()
-            elif chart_range == "6 Bulan":
-                df_chart = stock_hist.tail(120).copy()
-            else:
-                df_chart = stock_hist.copy()
+        if is_free:
+            mode_is_locked = True
+            paywall_reason = "Detail analisis komprehensif, grafik interaktif, setup parameter (entry, target, invalidasi), dan profil risiko lengkap hanya terbuka untuk pelanggan berbayar (1 Mode atau All Mode)."
+        elif is_1_mode and selected_mode != user_unlocked_mode:
+            mode_is_locked = True
+            paywall_reason = f"Mode ini dikunci karena Anda berlangganan paket 1 Mode khusus untuk **{user_unlocked_mode}**. Silakan upgrade ke paket All Mode untuk membuka detail seluruh mode analisis."
 
-            if selected_mode == "Scalping Mode (Beta)":
-                st.warning("⚠️ **Beta / Limited Mode**: Data intraday disimulasikan dari snapshot harian terakhir karena keterbatasan real-time feed.")
+        if mode_is_locked:
+            st.markdown(f'''
+            <div class="glass-card" style="border-top: 4px solid #ef4444; padding:35px; text-align:center; margin-top:15px;">
+                <h4 style="color:#ef4444; margin-top:0;">🔒 Fitur Detail Analisis Terkunci</h4>
+                <p style="color:#cbd5e1; font-size:0.95rem; line-height:1.5;">{paywall_reason}</p>
+            </div>
+            ''', unsafe_allow_html=True)
+        else:
+            col_det_left, col_det_right = st.columns([5, 3])
+        
+            with col_det_left:
+                st.markdown(f"##### Grafik Candlestick, MA, & Price Channels (20D Support/Resistance): **{selected_stock}**")
+            
+                # Chart period selector
+                chart_range = st.radio("Rentang Tampilan:", ["3 Bulan", "6 Bulan", "1 Tahun"], horizontal=True, key="c_range")
+                if chart_range == "3 Bulan":
+                    df_chart = stock_hist.tail(60).copy()
+                elif chart_range == "6 Bulan":
+                    df_chart = stock_hist.tail(120).copy()
+                else:
+                    df_chart = stock_hist.copy()
+
+                if selected_mode == "Scalping Mode (Beta)":
+                    st.warning("⚠️ **Beta / Limited Mode**: Data intraday disimulasikan dari snapshot harian terakhir karena keterbatasan real-time feed.")
                 
-                df_intra = stock_details.get("intraday_df")
-                if df_intra is not None and not df_intra.empty:
-                    st.markdown(f"##### ⏱️ Grafik Candle Intraday (5m) & VWAP Line: **{selected_stock}**")
-                    fig_intra = go.Figure()
-                    # Candlestick
-                    fig_intra.add_trace(go.Candlestick(
-                        x=df_intra['datetime'],
-                        open=df_intra['open'],
-                        high=df_intra['high'],
-                        low=df_intra['low'],
-                        close=df_intra['close'],
-                        name="Intraday 5m"
+                    df_intra = stock_details.get("intraday_df")
+                    if df_intra is not None and not df_intra.empty:
+                        st.markdown(f"##### ⏱️ Grafik Candle Intraday (5m) & VWAP Line: **{selected_stock}**")
+                        fig_intra = go.Figure()
+                        # Candlestick
+                        fig_intra.add_trace(go.Candlestick(
+                            x=df_intra['datetime'],
+                            open=df_intra['open'],
+                            high=df_intra['high'],
+                            low=df_intra['low'],
+                            close=df_intra['close'],
+                            name="Intraday 5m"
+                        ))
+                        # EMA9 & EMA21
+                        fig_intra.add_trace(go.Scatter(
+                            x=df_intra['datetime'], y=df_intra['open'].ewm(span=9).mean(),
+                            line=dict(color='#60a5fa', width=1.5), name="EMA 9"
+                        ))
+                        fig_intra.add_trace(go.Scatter(
+                            x=df_intra['datetime'], y=df_intra['open'].ewm(span=21).mean(),
+                            line=dict(color='#f59e0b', width=1.5), name="EMA 21"
+                        ))
+                        # VWAP Line
+                        fig_intra.add_trace(go.Scatter(
+                            x=df_intra['datetime'], y=df_intra['vwap'],
+                            line=dict(color='#e11d48', width=2, dash='dash'), name="VWAP"
+                        ))
+                        fig_intra.update_layout(
+                            template="plotly_dark",
+                            xaxis_rangeslider_visible=False,
+                            margin=dict(l=20, r=20, t=10, b=10),
+                            height=280,
+                            paper_bgcolor='rgba(0,0,0,0)',
+                            plot_bgcolor='rgba(0,0,0,0)',
+                            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                        )
+                        st.plotly_chart(fig_intra, use_container_width=True)
+                    
+                    # Render Simulated Order Book Depth
+                    ob = stock_details.get("order_book", {})
+                    if ob:
+                        st.markdown("##### 📖 Kedalaman Buku Order (Bid-Ask Depth)")
+                        ob_rows = []
+                        for i in range(5):
+                            ob_rows.append({
+                                "Bid Lot": f"{ob.get(f'bid_lot_{i+1}'):,}",
+                                "Bid Price": f"Rp {ob.get(f'bid_price_{i+1}'):,}",
+                                "Ask Price": f"Rp {ob.get(f'ask_price_{i+1}'):,}",
+                                "Ask Lot": f"{ob.get(f'ask_lot_{i+1}'):,}"
+                            })
+                        df_ob = pd.DataFrame(ob_rows)
+                        st.dataframe(df_ob, use_container_width=True, hide_index=True)
+                    
+                        st.caption(f"Spread: **{ob.get('spread', 0.0):.2f}%** | Bid-Ask Ratio: **{ob.get('bid_ask_ratio', 1.0):.2f}x** (Total Bid: {ob.get('total_bid_lots'):,} lot / Total Ask: {ob.get('total_ask_lots'):,} lot)")
+            
+                elif selected_mode == "Investment Mode":
+                    fin = stock_details.get("financials", {})
+                
+                    st.markdown(f"##### 📊 Grafik Valuasi Historis & Rentang Fair Value: **{selected_stock}**")
+                    fv_lower = 0.0
+                    fv_upper = 0.0
+                    if "fair_value_range" in fin:
+                        parts = fin["fair_value_range"].replace("Rp ", "").replace(",", "").split(" - ")
+                        if len(parts) == 2:
+                            fv_lower = float(parts[0])
+                            fv_upper = float(parts[1])
+                        
+                    fig_val = go.Figure()
+                    fig_val.add_trace(go.Scatter(
+                        x=df_chart['Date'], y=df_chart['Close'],
+                        line=dict(color='#3b82f6', width=2), name="Harga Close"
                     ))
-                    # EMA9 & EMA21
-                    fig_intra.add_trace(go.Scatter(
-                        x=df_intra['datetime'], y=df_intra['open'].ewm(span=9).mean(),
-                        line=dict(color='#60a5fa', width=1.5), name="EMA 9"
-                    ))
-                    fig_intra.add_trace(go.Scatter(
-                        x=df_intra['datetime'], y=df_intra['open'].ewm(span=21).mean(),
-                        line=dict(color='#f59e0b', width=1.5), name="EMA 21"
-                    ))
-                    # VWAP Line
-                    fig_intra.add_trace(go.Scatter(
-                        x=df_intra['datetime'], y=df_intra['vwap'],
-                        line=dict(color='#e11d48', width=2, dash='dash'), name="VWAP"
-                    ))
-                    fig_intra.update_layout(
+                    if fv_lower > 0:
+                        fig_val.add_hline(y=fv_lower, line_dash="dash", line_color="#34d399", annotation_text="Fair Value Min")
+                        fig_val.add_hline(y=fv_upper, line_dash="dash", line_color="#10b981", annotation_text="Fair Value Max")
+                    
+                    fig_val.update_layout(
                         template="plotly_dark",
-                        xaxis_rangeslider_visible=False,
                         margin=dict(l=20, r=20, t=10, b=10),
                         height=280,
                         paper_bgcolor='rgba(0,0,0,0)',
                         plot_bgcolor='rgba(0,0,0,0)',
                         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
                     )
-                    st.plotly_chart(fig_intra, use_container_width=True)
-                    
-                # Render Simulated Order Book Depth
-                ob = stock_details.get("order_book", {})
-                if ob:
-                    st.markdown("##### 📖 Kedalaman Buku Order (Bid-Ask Depth)")
-                    ob_rows = []
-                    for i in range(5):
-                        ob_rows.append({
-                            "Bid Lot": f"{ob.get(f'bid_lot_{i+1}'):,}",
-                            "Bid Price": f"Rp {ob.get(f'bid_price_{i+1}'):,}",
-                            "Ask Price": f"Rp {ob.get(f'ask_price_{i+1}'):,}",
-                            "Ask Lot": f"{ob.get(f'ask_lot_{i+1}'):,}"
-                        })
-                    df_ob = pd.DataFrame(ob_rows)
-                    st.dataframe(df_ob, use_container_width=True, hide_index=True)
-                    
-                    st.caption(f"Spread: **{ob.get('spread', 0.0):.2f}%** | Bid-Ask Ratio: **{ob.get('bid_ask_ratio', 1.0):.2f}x** (Total Bid: {ob.get('total_bid_lots'):,} lot / Total Ask: {ob.get('total_ask_lots'):,} lot)")
-            
-            elif selected_mode == "Investment Mode":
-                fin = stock_details.get("financials", {})
+                    st.plotly_chart(fig_val, use_container_width=True)
                 
-                st.markdown(f"##### 📊 Grafik Valuasi Historis & Rentang Fair Value: **{selected_stock}**")
-                fv_lower = 0.0
-                fv_upper = 0.0
-                if "fair_value_range" in fin:
-                    parts = fin["fair_value_range"].replace("Rp ", "").replace(",", "").split(" - ")
-                    if len(parts) == 2:
-                        fv_lower = float(parts[0])
-                        fv_upper = float(parts[1])
-                        
-                fig_val = go.Figure()
-                fig_val.add_trace(go.Scatter(
-                    x=df_chart['Date'], y=df_chart['Close'],
-                    line=dict(color='#3b82f6', width=2), name="Harga Close"
-                ))
-                if fv_lower > 0:
-                    fig_val.add_hline(y=fv_lower, line_dash="dash", line_color="#34d399", annotation_text="Fair Value Min")
-                    fig_val.add_hline(y=fv_upper, line_dash="dash", line_color="#10b981", annotation_text="Fair Value Max")
+                    # Financial Statements detail table
+                    st.markdown("##### 📰 Ringkasan Neraca & Arus Kas Kuartalan")
+                    fin_data = pd.DataFrame([
+                        {"Kategori": "Pendapatan (Revenue)", "Nilai": f"Rp {fin.get('revenue', 0.0):,.0f}"},
+                        {"Kategori": "Laba Kotor (Gross Profit)", "Nilai": f"Rp {fin.get('gross_profit', 0.0):,.0f}"},
+                        {"Kategori": "Laba Bersih (Net Profit)", "Nilai": f"Rp {fin.get('net_profit', 0.0):,.0f}"},
+                        {"Kategori": "Total Aset (Assets)", "Nilai": f"Rp {fin.get('total_asset', 0.0):,.0f}"},
+                        {"Kategori": "Total Liabilitas (Debt)", "Nilai": f"Rp {fin.get('total_liability', 0.0):,.0f}"},
+                        {"Kategori": "Total Ekuitas (Equity)", "Nilai": f"Rp {fin.get('total_equity', 0.0):,.0f}"},
+                        {"Kategori": "Arus Kas Operasional (OCF)", "Nilai": f"Rp {fin.get('operating_cash_flow', 0.0):,.0f}"},
+                        {"Kategori": "Belanja Modal (Capex)", "Nilai": f"Rp {fin.get('capex', 0.0):,.0f}"}
+                    ])
+                    st.dataframe(fin_data, use_container_width=True, hide_index=True)
+                
+                else: # Swing Trading Mode
+                    st.markdown(f"##### Grafik Candlestick, MA, & Price Channels (20D Support/Resistance): **{selected_stock}**")
+                    fig = go.Figure()
+                    fig.add_trace(go.Candlestick(
+                        x=df_chart['Date'], open=df_chart['Open'], high=df_chart['High'], low=df_chart['Low'], close=df_chart['Close'],
+                        name="Harga Saham", increasing_line_color='#10b981', decreasing_line_color='#ef4444'
+                    ))
+                    if 'MA20' in df_chart.columns:
+                        fig.add_trace(go.Scatter(x=df_chart['Date'], y=df_chart['MA20'], line=dict(color='#3b82f6', width=2), name='MA 20'))
+                    if 'MA50' in df_chart.columns:
+                        fig.add_trace(go.Scatter(x=df_chart['Date'], y=df_chart['MA50'], line=dict(color='#f59e0b', width=2), name='MA 50'))
+                    if 'Support20D' in df_chart.columns:
+                        fig.add_trace(go.Scatter(x=df_chart['Date'], y=df_chart['Support20D'], line=dict(color='#ef4444', width=1.5, dash='dash'), name='Support 20D'))
+                    if 'Resistance20D' in df_chart.columns:
+                        fig.add_trace(go.Scatter(x=df_chart['Date'], y=df_chart['Resistance20D'], line=dict(color='#10b981', width=1.5, dash='dash'), name='Resistance 20D'))
                     
-                fig_val.update_layout(
-                    template="plotly_dark",
-                    margin=dict(l=20, r=20, t=10, b=10),
-                    height=280,
+                    fig.update_layout(
+                        template="plotly_dark", xaxis_rangeslider_visible=False, margin=dict(l=20, r=20, t=10, b=10), height=350,
+                        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+                
+                    st.markdown(f"##### Volume Transaksi Harian & Rata-rata 20 Hari: **{selected_stock}**")
+                    fig_vol = go.Figure()
+                    fig_vol.add_trace(go.Bar(x=df_chart['Date'], y=df_chart['Volume'], marker_color='rgba(59, 130, 246, 0.4)', name='Volume Harian'))
+                    fig_vol.add_trace(go.Scatter(x=df_chart['Date'], y=df_chart['Vol_MA20'], line=dict(color='#3b82f6', width=2), name='Vol MA20'))
+                    fig_vol.update_layout(
+                        template="plotly_dark", margin=dict(l=20, r=20, t=10, b=10), height=180,
+                        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                    )
+                    st.plotly_chart(fig_vol, use_container_width=True)
+                
+                    st.markdown(f"##### Indikator Relative Strength Index (RSI 14): **{selected_stock}**")
+                    fig_rsi = go.Figure()
+                    fig_rsi.add_trace(go.Scatter(x=df_chart['Date'], y=df_chart['RSI'], line=dict(color='#a78bfa', width=2), fill='tozeroy', fillcolor='rgba(167, 139, 250, 0.05)', name='RSI 14'))
+                    fig_rsi.add_hline(y=70, line_dash="dash", line_color="#ef4444", annotation_text="Overbought")
+                    fig_rsi.add_hline(y=30, line_dash="dash", line_color="#10b981", annotation_text="Oversold")
+                    fig_rsi.update_layout(
+                        template="plotly_dark", yaxis=dict(range=[10, 90]), margin=dict(l=20, r=20, t=10, b=10), height=180,
+                        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                    )
+                    st.plotly_chart(fig_rsi, use_container_width=True)
+            
+            with col_det_right:
+                # WOW KICK GAUGE CHART
+                st.markdown("<div class='glass-card' style='text-align:center;'>", unsafe_allow_html=True)
+            
+                score = stock_details["score"]
+                rec = stock_details["recommendation"]
+            
+                # Gauge Plotly Chart
+                fig_gauge = go.Figure(go.Indicator(
+                    mode="gauge+number",
+                    value=score,
+                    domain={'x': [0, 1], 'y': [0, 1]},
+                    gauge={
+                        'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "#ffffff"},
+                        'bar': {'color': "#ffffff", 'thickness': 0.25},
+                        'bgcolor': "rgba(0,0,0,0)",
+                        'borderwidth': 2,
+                        'bordercolor': "rgba(255,255,255,0.1)",
+                        'steps': [
+                            {'range': [0, 55], 'color': '#ef4444'},
+                            {'range': [55, 75], 'color': '#f59e0b'},
+                            {'range': [75, 100], 'color': '#10b981'}
+                        ],
+                        'threshold': {
+                            'line': {'color': "#ffffff", 'width': 4},
+                            'thickness': 0.75,
+                            'value': score
+                        }
+                    }
+                ))
+                fig_gauge.update_layout(
                     paper_bgcolor='rgba(0,0,0,0)',
                     plot_bgcolor='rgba(0,0,0,0)',
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                    font={'color': "#ffffff", 'family': "Arial"},
+                    height=220,
+                    margin=dict(l=30, r=30, t=30, b=10)
                 )
-                st.plotly_chart(fig_val, use_container_width=True)
-                
-                # Financial Statements detail table
-                st.markdown("##### 📰 Ringkasan Neraca & Arus Kas Kuartalan")
-                fin_data = pd.DataFrame([
-                    {"Kategori": "Pendapatan (Revenue)", "Nilai": f"Rp {fin.get('revenue', 0.0):,.0f}"},
-                    {"Kategori": "Laba Kotor (Gross Profit)", "Nilai": f"Rp {fin.get('gross_profit', 0.0):,.0f}"},
-                    {"Kategori": "Laba Bersih (Net Profit)", "Nilai": f"Rp {fin.get('net_profit', 0.0):,.0f}"},
-                    {"Kategori": "Total Aset (Assets)", "Nilai": f"Rp {fin.get('total_asset', 0.0):,.0f}"},
-                    {"Kategori": "Total Liabilitas (Debt)", "Nilai": f"Rp {fin.get('total_liability', 0.0):,.0f}"},
-                    {"Kategori": "Total Ekuitas (Equity)", "Nilai": f"Rp {fin.get('total_equity', 0.0):,.0f}"},
-                    {"Kategori": "Arus Kas Operasional (OCF)", "Nilai": f"Rp {fin.get('operating_cash_flow', 0.0):,.0f}"},
-                    {"Kategori": "Belanja Modal (Capex)", "Nilai": f"Rp {fin.get('capex', 0.0):,.0f}"}
-                ])
-                st.dataframe(fin_data, use_container_width=True, hide_index=True)
-                
-            else: # Swing Trading Mode
-                st.markdown(f"##### Grafik Candlestick, MA, & Price Channels (20D Support/Resistance): **{selected_stock}**")
-                fig = go.Figure()
-                fig.add_trace(go.Candlestick(
-                    x=df_chart['Date'], open=df_chart['Open'], high=df_chart['High'], low=df_chart['Low'], close=df_chart['Close'],
-                    name="Harga Saham", increasing_line_color='#10b981', decreasing_line_color='#ef4444'
-                ))
-                if 'MA20' in df_chart.columns:
-                    fig.add_trace(go.Scatter(x=df_chart['Date'], y=df_chart['MA20'], line=dict(color='#3b82f6', width=2), name='MA 20'))
-                if 'MA50' in df_chart.columns:
-                    fig.add_trace(go.Scatter(x=df_chart['Date'], y=df_chart['MA50'], line=dict(color='#f59e0b', width=2), name='MA 50'))
-                if 'Support20D' in df_chart.columns:
-                    fig.add_trace(go.Scatter(x=df_chart['Date'], y=df_chart['Support20D'], line=dict(color='#ef4444', width=1.5, dash='dash'), name='Support 20D'))
-                if 'Resistance20D' in df_chart.columns:
-                    fig.add_trace(go.Scatter(x=df_chart['Date'], y=df_chart['Resistance20D'], line=dict(color='#10b981', width=1.5, dash='dash'), name='Resistance 20D'))
-                    
-                fig.update_layout(
-                    template="plotly_dark", xaxis_rangeslider_visible=False, margin=dict(l=20, r=20, t=10, b=10), height=350,
-                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-                )
-                st.plotly_chart(fig, use_container_width=True)
-                
-                st.markdown(f"##### Volume Transaksi Harian & Rata-rata 20 Hari: **{selected_stock}**")
-                fig_vol = go.Figure()
-                fig_vol.add_trace(go.Bar(x=df_chart['Date'], y=df_chart['Volume'], marker_color='rgba(59, 130, 246, 0.4)', name='Volume Harian'))
-                fig_vol.add_trace(go.Scatter(x=df_chart['Date'], y=df_chart['Vol_MA20'], line=dict(color='#3b82f6', width=2), name='Vol MA20'))
-                fig_vol.update_layout(
-                    template="plotly_dark", margin=dict(l=20, r=20, t=10, b=10), height=180,
-                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-                )
-                st.plotly_chart(fig_vol, use_container_width=True)
-                
-                st.markdown(f"##### Indikator Relative Strength Index (RSI 14): **{selected_stock}**")
-                fig_rsi = go.Figure()
-                fig_rsi.add_trace(go.Scatter(x=df_chart['Date'], y=df_chart['RSI'], line=dict(color='#a78bfa', width=2), fill='tozeroy', fillcolor='rgba(167, 139, 250, 0.05)', name='RSI 14'))
-                fig_rsi.add_hline(y=70, line_dash="dash", line_color="#ef4444", annotation_text="Overbought")
-                fig_rsi.add_hline(y=30, line_dash="dash", line_color="#10b981", annotation_text="Oversold")
-                fig_rsi.update_layout(
-                    template="plotly_dark", yaxis=dict(range=[10, 90]), margin=dict(l=20, r=20, t=10, b=10), height=180,
-                    paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-                )
-                st.plotly_chart(fig_rsi, use_container_width=True)
+                st.plotly_chart(fig_gauge, use_container_width=True)
             
-        with col_det_right:
-            # WOW KICK GAUGE CHART
-            st.markdown("<div class='glass-card' style='text-align:center;'>", unsafe_allow_html=True)
-            
-            score = stock_details["score"]
-            rec = stock_details["recommendation"]
-            
-            # Gauge Plotly Chart
-            fig_gauge = go.Figure(go.Indicator(
-                mode="gauge+number",
-                value=score,
-                domain={'x': [0, 1], 'y': [0, 1]},
-                gauge={
-                    'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "#ffffff"},
-                    'bar': {'color': "#ffffff", 'thickness': 0.25},
-                    'bgcolor': "rgba(0,0,0,0)",
-                    'borderwidth': 2,
-                    'bordercolor': "rgba(255,255,255,0.1)",
-                    'steps': [
-                        {'range': [0, 55], 'color': '#ef4444'},
-                        {'range': [55, 75], 'color': '#f59e0b'},
-                        {'range': [75, 100], 'color': '#10b981'}
-                    ],
-                    'threshold': {
-                        'line': {'color': "#ffffff", 'width': 4},
-                        'thickness': 0.75,
-                        'value': score
-                    }
-                }
-            ))
-            fig_gauge.update_layout(
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(0,0,0,0)',
-                font={'color': "#ffffff", 'family': "Arial"},
-                height=220,
-                margin=dict(l=30, r=30, t=30, b=10)
-            )
-            st.plotly_chart(fig_gauge, use_container_width=True)
-            
-            # Map legacy signal to clean OJK term
-            clean_rec = clean_signal_name(rec)
-            if clean_rec == "Watchlist Prioritas":
-                rec_badge_style = "badge-buy"
-            elif clean_rec == "Wait and See":
-                rec_badge_style = "badge-watch"
-            else:
-                rec_badge_style = "badge-avoid"
-
-            st.markdown(f"""
-            <div style="margin-top:-20px; margin-bottom:15px;">
-                <span class="badge {rec_badge_style}" style="font-size:1.4rem; padding:8px 25px; border-radius:30px;">
-                    {clean_rec}
-                </span>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Manual Telegram push button (Admin Only)
-            if is_admin and tg_bot_token and tg_chat_id:
-                if st.button("📤 Kirim Sinyal Ke Telegram", key="btn_send_tg", use_container_width=True):
-                    with st.spinner("Mengirim alert telegram..."):
-                        success, msg = send_telegram_alert(tg_bot_token, tg_chat_id, stock_details)
-                        if success:
-                            st.toast("✅ Sinyal dikirim ke Telegram!", icon="🔔")
-                            st.success(msg)
-                        else:
-                            st.error(msg)
-                            
-            st.markdown("</div>", unsafe_allow_html=True)
-            
-            if selected_mode == "Scalping Mode (Beta)":
-                # Combined Grid Score Dashboard
-                st.markdown("##### 🔢 Detail Bobot Penilaian Scalping")
-                st.markdown(f"**Intraday Momentum:** +25% | **Volume Spike:** +20% | **Liquidity:** +20% | **VWAP Position:** +15% | **Order Depth:** +10% | **Broker & Risk:** +10%")
-                st.write("")
-                
-                # --- TRADING SIGNAL SETUP SECTION ---
-                st.markdown("##### 🎯 Setup Sinyal Scalping Intraday")
-                st.markdown(f"**Entry Area (Intraday):** <span style='font-size:1.15rem; color:#60a5fa; font-weight:700;'>{stock_details['entry_area']}</span>", unsafe_allow_html=True)
-                
-                col_s1, col_s2, col_s3, col_s4 = st.columns(4)
-                with col_s1:
-                    tp1_val = f"Rp {stock_details['tp1']:,}" if isinstance(stock_details['tp1'], (int, float)) else stock_details['tp1']
-                    st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Target 1 (1.5%)</div><div class="metric-grid-val" style="color:#34d399; font-size:1.1rem; padding-top:4px;">{tp1_val}</div></div>', unsafe_allow_html=True)
-                with col_s2:
-                    tp2_val = f"Rp {stock_details['tp2']:,}" if isinstance(stock_details['tp2'], (int, float)) else stock_details['tp2']
-                    st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Target 2 (3%)</div><div class="metric-grid-val" style="color:#10b981; font-size:1.1rem; padding-top:4px;">{tp2_val}</div></div>', unsafe_allow_html=True)
-                with col_s3:
-                    sl_val = f"Rp {stock_details['sl']:,}" if isinstance(stock_details['sl'], (int, float)) else stock_details['sl']
-                    st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Stop Loss</div><div class="metric-grid-val" style="color:#f87171; font-size:1.1rem; padding-top:4px;">{sl_val}</div></div>', unsafe_allow_html=True)
-                with col_s4:
-                    st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Horizon</div><div class="metric-grid-val" style="font-size:1.1rem; padding-top:4px; color:#a78bfa;">Intraday</div></div>', unsafe_allow_html=True)
-                
-                st.write("")
-                st.markdown(f"💡 **Titik Invalidasi:** {stock_details['invalidation_point']}")
-                
-            elif selected_mode == "Investment Mode":
-                fin = stock_details.get("financials", {})
-                st.markdown("##### 🔢 Detail Bobot Penilaian Investasi")
-                st.markdown(f"**Business Quality:** +20% | **Revenue/Earnings Growth:** +20% | **Profitability:** +15% | **Balance Sheet:** +15% | **Cash Flow:** +10% | **Valuation:** +10% | **Others:** +10%")
-                
-                st.write("")
-                st.markdown("##### 🎯 Hasil Evaluasi Investasi Jangka Panjang")
-                
-                col_inv1, col_inv2 = st.columns(2)
-                with col_inv1:
-                    st.markdown(f"**Kualitas Bisnis:** `{stock_details.get('quality_status', 'Average')}`")
-                    st.markdown(f"**Valuasi Saham:** `{stock_details.get('valuation_status', 'Fair')}`")
-                    st.markdown(f"**Pertumbuhan Bisnis:** `{stock_details.get('growth_status', 'Stagnant')}`")
-                with col_inv2:
-                    st.markdown(f"**Rasio Utang (DER):** `{fin.get('DER', 1.0):.2f} ({stock_details.get('debt_risk', 'Medium')})`")
-                    st.markdown(f"**Kualitas Arus Kas:** `{stock_details.get('cash_flow_quality', 'Good')}`")
-                    st.markdown(f"**Governance Risk:** `{fin.get('governance_risk', 'Low')}`")
-                    
-                st.markdown('<div style="height:10px;"></div>', unsafe_allow_html=True)
-                col_mos1, col_mos2 = st.columns(2)
-                with col_mos1:
-                    st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Rentang Fair Value</div><div class="metric-grid-val" style="color:#60a5fa; font-size:1.1rem; padding-top:4px;">{stock_details.get("fair_value_range", "N/A")}</div></div>', unsafe_allow_html=True)
-                with col_mos2:
-                    st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Margin of Safety</div><div class="metric-grid-val" style="color:#10b981; font-size:1.1rem; padding-top:4px;">{stock_details.get("margin_of_safety", "N/A")}</div></div>', unsafe_allow_html=True)
-                
-                st.write("")
-                st.markdown(f"💡 **Titik Invalidasi Thesis:** {stock_details['invalidation_point']}")
-                
-            else: # Swing Trading Mode
-                # Combined Grid Score Dashboard
-                st.markdown("##### 🔢 Detail Bobot Penilaian Swing")
-                col_t1, col_t2 = st.columns(2)
-                with col_t1:
-                    st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Skor Teknikal (60%)</div><div class="metric-grid-val" style="color:#60a5fa;">{stock_details["technical_score"]}</div></div>', unsafe_allow_html=True)
-                with col_t2:
-                    flow_s_val = f"{stock_details['flow_score']}" if stock_details['flow_score'] is not None else "N/A"
-                    st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Skor Flow (40%)</div><div class="metric-grid-val" style="color:#a78bfa;">{flow_s_val}</div></div>', unsafe_allow_html=True)
-                    
-                st.write("")
-                
-                # --- TRADING SIGNAL SETUP SECTION ---
-                st.markdown("##### 🎯 Setup Sinyal Swing Trading")
-                st.markdown(f"**Entry Area:** <span style='font-size:1.15rem; color:#60a5fa; font-weight:700;'>{stock_details['entry_area']}</span>", unsafe_allow_html=True)
-                
-                col_s1, col_s2, col_s3, col_s4 = st.columns(4)
-                with col_s1:
-                    tp1_val = f"Rp {stock_details['tp1']:,}" if isinstance(stock_details['tp1'], (int, float)) else stock_details['tp1']
-                    st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">TP 1</div><div class="metric-grid-val" style="color:#34d399; font-size:1.1rem; padding-top:4px;">{tp1_val}</div></div>', unsafe_allow_html=True)
-                with col_s2:
-                    tp2_val = f"Rp {stock_details['tp2']:,}" if isinstance(stock_details['tp2'], (int, float)) else stock_details['tp2']
-                    st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">TP 2</div><div class="metric-grid-val" style="color:#10b981; font-size:1.1rem; padding-top:4px;">{tp2_val}</div></div>', unsafe_allow_html=True)
-                with col_s3:
-                    sl_val = f"Rp {stock_details['sl']:,}" if isinstance(stock_details['sl'], (int, float)) else stock_details['sl']
-                    st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Stop Loss</div><div class="metric-grid-val" style="color:#f87171; font-size:1.1rem; padding-top:4px;">{sl_val}</div></div>', unsafe_allow_html=True)
-                with col_s4:
-                    st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">R/R Ratio</div><div class="metric-grid-val" style="font-size:1.1rem; padding-top:4px;">{stock_details["risk_reward_ratio"]}</div></div>', unsafe_allow_html=True)
-                
-                st.write("")
-                st.markdown(f"💡 **Alasan Setup:** {stock_details['entry_reason']}")
-                st.markdown(f"💡 **Titik Invalidasi:** {stock_details['invalidation_point']}")
-                
-                # Bandarmologi summary section
-                st.markdown("##### 🐳 Hasil Analisis Bandarmologi & Flow")
-                fd = stock_details["flow_data"]
-                if stock_details["flow_score"] is None:
-                    st.warning("⚠️ Data bandarmologi tidak tersedia.")
+                # Map legacy signal to clean OJK term
+                clean_rec = clean_signal_name(rec)
+                if clean_rec == "Watchlist Prioritas":
+                    rec_badge_style = "badge-buy"
+                elif clean_rec == "Wait and See":
+                    rec_badge_style = "badge-watch"
                 else:
-                    col_f1, col_f2, col_f3 = st.columns(3)
-                    with col_f1:
-                        f_net_1d = fd.get("foreign_net_1d", 0.0)
-                        f_color = "#10b981" if f_net_1d > 0 else "#ef4444"
-                        st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Foreign 1D</div><div class="metric-grid-val" style="color:{f_color}; font-size:1.0rem;">Rp {f_net_1d/1e9:+.1f}B</div></div>', unsafe_allow_html=True)
-                    with col_f2:
-                        f_net_5d = fd.get("foreign_net_5d", 0.0)
-                        f_color = "#10b981" if f_net_5d > 0 else "#ef4444"
-                        st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Foreign 5D</div><div class="metric-grid-val" style="color:{f_color}; font-size:1.0rem;">Rp {f_net_5d/1e9:+.1f}B</div></div>', unsafe_allow_html=True)
-                    with col_f3:
-                        f_net_20d = fd.get("foreign_net_20d", 0.0)
-                        f_color = "#10b981" if f_net_20d > 0 else "#ef4444"
-                        st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Foreign 20D</div><div class="metric-grid-val" style="color:{f_color}; font-size:1.0rem;">Rp {f_net_20d/1e9:+.1f}B</div></div>', unsafe_allow_html=True)
-                        
-                    st.write("")
-                    st.markdown(f"**Top Buyer Brokers:** {fd.get('top_buyer_brokers', 'N/A')} (Accumulation: `{fd.get('broker_accumulation_signal', 'Neutral')}`)")
-                    st.markdown(f"**Top Seller Brokers:** {fd.get('top_seller_brokers', 'N/A')} (Distribution: `{fd.get('broker_distribution_signal', 'Neutral')}`)")
-                    
-                    df_b = stock_details["df_broker"]
-                    if df_b is not None and not df_b.empty:
-                        with st.expander("🔍 Detail Top 5 Transaksi Broker Hari Ini"):
-                            latest_date = df_b['date'].max()
-                            df_b_latest = df_b[df_b['date'] == latest_date].copy()
-                            broker_summary = df_b_latest.groupby(['broker_code', 'broker_name']).agg({'net_value': 'sum'}).reset_index()
-                            
-                            df_buyers = broker_summary[broker_summary['net_value'] > 0].sort_values('net_value', ascending=False).head(5)
-                            df_sellers = broker_summary[broker_summary['net_value'] < 0].sort_values('net_value', ascending=True).head(5)
-                            
-                            df_buyers_disp = pd.DataFrame({
-                                "Kode": df_buyers["broker_code"],
-                                "Broker Buyer": df_buyers["broker_name"],
-                                "Net Buy (Rp)": df_buyers["net_value"].apply(lambda x: f"Rp {x:,.0f}")
-                            }).reset_index(drop=True)
-                            
-                            df_sellers_disp = pd.DataFrame({
-                                "Kode": df_sellers["broker_code"],
-                                "Broker Seller": df_sellers["broker_name"],
-                                "Net Sell (Rp)": df_sellers["net_value"].abs().apply(lambda x: f"Rp {x:,.0f}")
-                            }).reset_index(drop=True)
-                            
-                            col_br_b, col_br_s = st.columns(2)
-                            with col_br_b:
-                                st.caption("Top 5 Buyers")
-                                st.dataframe(df_buyers_disp, hide_index=True)
-                            with col_br_s:
-                                st.caption("Top 5 Sellers")
-                                st.dataframe(df_sellers_disp, hide_index=True)
+                    rec_badge_style = "badge-avoid"
 
-            # Display reasons & risks lists
-            with st.expander("🟢 Rincian Analisis (Teknikal & Flow)", expanded=False):
-                for reason in stock_details["reasons"]:
-                    st.markdown(f"**✓** {reason}")
-                    
-            with st.expander("⚠️ Faktor Risiko Singkat Terdeteksi", expanded=True):
-                for risk in stock_details["risks"]:
-                    # Color code systems messages
-                    risk_color = "#f87171" if "[Sistem]" not in risk else "#60a5fa"
-                    st.markdown(f"**•** <span style='color:{risk_color}'>{risk}</span>", unsafe_allow_html=True)
-                    
-    if is_admin:
-        with tab_history:
-            st.subheader("📜 Log Riwayat Analisis Harian")
-            st.write("Histori data screening harian yang tercatat di database online Neon DB / database SQLite lokal.")
+                st.markdown(f"""
+                <div style="margin-top:-20px; margin-bottom:15px;">
+                    <span class="badge {rec_badge_style}" style="font-size:1.4rem; padding:8px 25px; border-radius:30px;">
+                        {clean_rec}
+                    </span>
+                </div>
+                """, unsafe_allow_html=True)
             
-            try:
-                df_logs = storage.load_historical_logs(limit=250)
+                # Manual Telegram push button (Admin Only)
+                if is_admin and tg_bot_token and tg_chat_id:
+                    if st.button("📤 Kirim Sinyal Ke Telegram", key="btn_send_tg", use_container_width=True):
+                        with st.spinner("Mengirim alert telegram..."):
+                            success, msg = send_telegram_alert(tg_bot_token, tg_chat_id, stock_details)
+                            if success:
+                                st.toast("✅ Sinyal dikirim ke Telegram!", icon="🔔")
+                                st.success(msg)
+                            else:
+                                st.error(msg)
+                            
+                st.markdown("</div>", unsafe_allow_html=True)
+            
+                if selected_mode == "Scalping Mode (Beta)":
+                    # Combined Grid Score Dashboard
+                    st.markdown("##### 🔢 Detail Bobot Penilaian Scalping")
+                    st.markdown(f"**Intraday Momentum:** +25% | **Volume Spike:** +20% | **Liquidity:** +20% | **VWAP Position:** +15% | **Order Depth:** +10% | **Broker & Risk:** +10%")
+                    st.write("")
+                
+                    # --- TRADING SIGNAL SETUP SECTION ---
+                    st.markdown("##### 🎯 Setup Sinyal Scalping Intraday")
+                    st.markdown(f"**Entry Area (Intraday):** <span style='font-size:1.15rem; color:#60a5fa; font-weight:700;'>{stock_details['entry_area']}</span>", unsafe_allow_html=True)
+                
+                    col_s1, col_s2, col_s3, col_s4 = st.columns(4)
+                    with col_s1:
+                        tp1_val = f"Rp {stock_details['tp1']:,}" if isinstance(stock_details['tp1'], (int, float)) else stock_details['tp1']
+                        st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Target 1 (1.5%)</div><div class="metric-grid-val" style="color:#34d399; font-size:1.1rem; padding-top:4px;">{tp1_val}</div></div>', unsafe_allow_html=True)
+                    with col_s2:
+                        tp2_val = f"Rp {stock_details['tp2']:,}" if isinstance(stock_details['tp2'], (int, float)) else stock_details['tp2']
+                        st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Target 2 (3%)</div><div class="metric-grid-val" style="color:#10b981; font-size:1.1rem; padding-top:4px;">{tp2_val}</div></div>', unsafe_allow_html=True)
+                    with col_s3:
+                        sl_val = f"Rp {stock_details['sl']:,}" if isinstance(stock_details['sl'], (int, float)) else stock_details['sl']
+                        st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Stop Loss</div><div class="metric-grid-val" style="color:#f87171; font-size:1.1rem; padding-top:4px;">{sl_val}</div></div>', unsafe_allow_html=True)
+                    with col_s4:
+                        st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Horizon</div><div class="metric-grid-val" style="font-size:1.1rem; padding-top:4px; color:#a78bfa;">Intraday</div></div>', unsafe_allow_html=True)
+                
+                    st.write("")
+                    st.markdown(f"💡 **Titik Invalidasi:** {stock_details['invalidation_point']}")
+                
+                elif selected_mode == "Investment Mode":
+                    fin = stock_details.get("financials", {})
+                    st.markdown("##### 🔢 Detail Bobot Penilaian Investasi")
+                    st.markdown(f"**Business Quality:** +20% | **Revenue/Earnings Growth:** +20% | **Profitability:** +15% | **Balance Sheet:** +15% | **Cash Flow:** +10% | **Valuation:** +10% | **Others:** +10%")
+                
+                    st.write("")
+                    st.markdown("##### 🎯 Hasil Evaluasi Investasi Jangka Panjang")
+                
+                    col_inv1, col_inv2 = st.columns(2)
+                    with col_inv1:
+                        st.markdown(f"**Kualitas Bisnis:** `{stock_details.get('quality_status', 'Average')}`")
+                        st.markdown(f"**Valuasi Saham:** `{stock_details.get('valuation_status', 'Fair')}`")
+                        st.markdown(f"**Pertumbuhan Bisnis:** `{stock_details.get('growth_status', 'Stagnant')}`")
+                    with col_inv2:
+                        st.markdown(f"**Rasio Utang (DER):** `{fin.get('DER', 1.0):.2f} ({stock_details.get('debt_risk', 'Medium')})`")
+                        st.markdown(f"**Kualitas Arus Kas:** `{stock_details.get('cash_flow_quality', 'Good')}`")
+                        st.markdown(f"**Governance Risk:** `{fin.get('governance_risk', 'Low')}`")
+                    
+                    st.markdown('<div style="height:10px;"></div>', unsafe_allow_html=True)
+                    col_mos1, col_mos2 = st.columns(2)
+                    with col_mos1:
+                        st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Rentang Fair Value</div><div class="metric-grid-val" style="color:#60a5fa; font-size:1.1rem; padding-top:4px;">{stock_details.get("fair_value_range", "N/A")}</div></div>', unsafe_allow_html=True)
+                    with col_mos2:
+                        st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Margin of Safety</div><div class="metric-grid-val" style="color:#10b981; font-size:1.1rem; padding-top:4px;">{stock_details.get("margin_of_safety", "N/A")}</div></div>', unsafe_allow_html=True)
+                
+                    st.write("")
+                    st.markdown(f"💡 **Titik Invalidasi Thesis:** {stock_details['invalidation_point']}")
+                
+                else: # Swing Trading Mode
+                    # Combined Grid Score Dashboard
+                    st.markdown("##### 🔢 Detail Bobot Penilaian Swing")
+                    col_t1, col_t2 = st.columns(2)
+                    with col_t1:
+                        st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Skor Teknikal (60%)</div><div class="metric-grid-val" style="color:#60a5fa;">{stock_details["technical_score"]}</div></div>', unsafe_allow_html=True)
+                    with col_t2:
+                        flow_s_val = f"{stock_details['flow_score']}" if stock_details['flow_score'] is not None else "N/A"
+                        st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Skor Flow (40%)</div><div class="metric-grid-val" style="color:#a78bfa;">{flow_s_val}</div></div>', unsafe_allow_html=True)
+                    
+                    st.write("")
+                
+                    # --- TRADING SIGNAL SETUP SECTION ---
+                    st.markdown("##### 🎯 Setup Sinyal Swing Trading")
+                    st.markdown(f"**Entry Area:** <span style='font-size:1.15rem; color:#60a5fa; font-weight:700;'>{stock_details['entry_area']}</span>", unsafe_allow_html=True)
+                
+                    col_s1, col_s2, col_s3, col_s4 = st.columns(4)
+                    with col_s1:
+                        tp1_val = f"Rp {stock_details['tp1']:,}" if isinstance(stock_details['tp1'], (int, float)) else stock_details['tp1']
+                        st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">TP 1</div><div class="metric-grid-val" style="color:#34d399; font-size:1.1rem; padding-top:4px;">{tp1_val}</div></div>', unsafe_allow_html=True)
+                    with col_s2:
+                        tp2_val = f"Rp {stock_details['tp2']:,}" if isinstance(stock_details['tp2'], (int, float)) else stock_details['tp2']
+                        st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">TP 2</div><div class="metric-grid-val" style="color:#10b981; font-size:1.1rem; padding-top:4px;">{tp2_val}</div></div>', unsafe_allow_html=True)
+                    with col_s3:
+                        sl_val = f"Rp {stock_details['sl']:,}" if isinstance(stock_details['sl'], (int, float)) else stock_details['sl']
+                        st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Stop Loss</div><div class="metric-grid-val" style="color:#f87171; font-size:1.1rem; padding-top:4px;">{sl_val}</div></div>', unsafe_allow_html=True)
+                    with col_s4:
+                        st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">R/R Ratio</div><div class="metric-grid-val" style="font-size:1.1rem; padding-top:4px;">{stock_details["risk_reward_ratio"]}</div></div>', unsafe_allow_html=True)
+                
+                    st.write("")
+                    st.markdown(f"💡 **Alasan Setup:** {stock_details['entry_reason']}")
+                    st.markdown(f"💡 **Titik Invalidasi:** {stock_details['invalidation_point']}")
+                
+                    # Bandarmologi summary section
+                    st.markdown("##### 🐳 Hasil Analisis Bandarmologi & Flow")
+                    fd = stock_details["flow_data"]
+                    if stock_details["flow_score"] is None:
+                        st.warning("⚠️ Data bandarmologi tidak tersedia.")
+                    else:
+                        col_f1, col_f2, col_f3 = st.columns(3)
+                        with col_f1:
+                            f_net_1d = fd.get("foreign_net_1d", 0.0)
+                            f_color = "#10b981" if f_net_1d > 0 else "#ef4444"
+                            st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Foreign 1D</div><div class="metric-grid-val" style="color:{f_color}; font-size:1.0rem;">Rp {f_net_1d/1e9:+.1f}B</div></div>', unsafe_allow_html=True)
+                        with col_f2:
+                            f_net_5d = fd.get("foreign_net_5d", 0.0)
+                            f_color = "#10b981" if f_net_5d > 0 else "#ef4444"
+                            st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Foreign 5D</div><div class="metric-grid-val" style="color:{f_color}; font-size:1.0rem;">Rp {f_net_5d/1e9:+.1f}B</div></div>', unsafe_allow_html=True)
+                        with col_f3:
+                            f_net_20d = fd.get("foreign_net_20d", 0.0)
+                            f_color = "#10b981" if f_net_20d > 0 else "#ef4444"
+                            st.markdown(f'<div class="metric-grid-card"><div class="metric-grid-lbl">Foreign 20D</div><div class="metric-grid-val" style="color:{f_color}; font-size:1.0rem;">Rp {f_net_20d/1e9:+.1f}B</div></div>', unsafe_allow_html=True)
+                        
+                        st.write("")
+                        st.markdown(f"**Top Buyer Brokers:** {fd.get('top_buyer_brokers', 'N/A')} (Accumulation: `{fd.get('broker_accumulation_signal', 'Neutral')}`)")
+                        st.markdown(f"**Top Seller Brokers:** {fd.get('top_seller_brokers', 'N/A')} (Distribution: `{fd.get('broker_distribution_signal', 'Neutral')}`)")
+                    
+                        df_b = stock_details["df_broker"]
+                        if df_b is not None and not df_b.empty:
+                            with st.expander("🔍 Detail Top 5 Transaksi Broker Hari Ini"):
+                                latest_date = df_b['date'].max()
+                                df_b_latest = df_b[df_b['date'] == latest_date].copy()
+                                broker_summary = df_b_latest.groupby(['broker_code', 'broker_name']).agg({'net_value': 'sum'}).reset_index()
+                            
+                                df_buyers = broker_summary[broker_summary['net_value'] > 0].sort_values('net_value', ascending=False).head(5)
+                                df_sellers = broker_summary[broker_summary['net_value'] < 0].sort_values('net_value', ascending=True).head(5)
+                            
+                                df_buyers_disp = pd.DataFrame({
+                                    "Kode": df_buyers["broker_code"],
+                                    "Broker Buyer": df_buyers["broker_name"],
+                                    "Net Buy (Rp)": df_buyers["net_value"].apply(lambda x: f"Rp {x:,.0f}")
+                                }).reset_index(drop=True)
+                            
+                                df_sellers_disp = pd.DataFrame({
+                                    "Kode": df_sellers["broker_code"],
+                                    "Broker Seller": df_sellers["broker_name"],
+                                    "Net Sell (Rp)": df_sellers["net_value"].abs().apply(lambda x: f"Rp {x:,.0f}")
+                                }).reset_index(drop=True)
+                            
+                                col_br_b, col_br_s = st.columns(2)
+                                with col_br_b:
+                                    st.caption("Top 5 Buyers")
+                                    st.dataframe(df_buyers_disp, hide_index=True)
+                                with col_br_s:
+                                    st.caption("Top 5 Sellers")
+                                    st.dataframe(df_sellers_disp, hide_index=True)
+
+                # Display reasons & risks lists
+                with st.expander("🟢 Rincian Analisis (Teknikal & Flow)", expanded=False):
+                    for reason in stock_details["reasons"]:
+                        st.markdown(f"**✓** {reason}")
+                    
+                with st.expander("⚠️ Faktor Risiko Singkat Terdeteksi", expanded=True):
+                    for risk in stock_details["risks"]:
+                        # Color code systems messages
+                        risk_color = "#f87171" if "[Sistem]" not in risk else "#60a5fa"
+                        st.markdown(f"**•** <span style='color:{risk_color}'>{risk}</span>", unsafe_allow_html=True)
+                    
+    with tab_history:
+        st.subheader("📜 Log Riwayat Analisis Harian")
+        
+        # Calculate limits based on active plan
+        is_free = (st.session_state["user_plan"] == "Free")
+        is_1_mode = (st.session_state["user_plan"] == "1 Mode")
+        limit_days = 3 if is_free else (30 if is_1_mode else 90)
+        
+        st.write(f"Histori data screening harian. Paket Anda ({st.session_state['user_plan']}) membatasi tampilan hingga **{limit_days} hari terakhir**.")
+        
+        try:
+            # Load historical logs
+            df_logs = storage.load_historical_logs(limit=1000)
+            if not df_logs.empty:
+                df_logs['tanggal'] = pd.to_datetime(df_logs['tanggal']).dt.date
+                
+                # Filter by date range limit
+                from datetime import timedelta
+                min_date = date.today() - timedelta(days=limit_days)
+                df_logs = df_logs[df_logs['tanggal'] >= min_date].reset_index(drop=True)
+                
                 if not df_logs.empty:
-                    df_logs['tanggal'] = pd.to_datetime(df_logs['tanggal']).dt.date
                     df_logs = df_logs.rename(columns={
                         'tanggal': 'Tanggal', 'ticker': 'Ticker', 'close_price': 'Harga Close',
                         'rsi': 'RSI', 'ma20': 'MA 20', 'ma50': 'MA 50', 'momentum_1m': 'Momentum 1M',
@@ -1526,9 +1641,11 @@ if "results" in st.session_state and st.session_state["results"]:
                     })
                     st.dataframe(df_logs, use_container_width=True, hide_index=True)
                 else:
-                    st.info("Log database masih kosong. Jalankan screening baru di sidebar untuk mengisi database.")
-            except Exception as e:
-                st.error(f"Gagal memuat log data dari database: {str(e)}")
+                    st.info(f"Tidak ada data screening tercatat dalam {limit_days} hari terakhir.")
+            else:
+                st.info("Log database masih kosong.")
+        except Exception as e:
+            st.error(f"Gagal memuat log data dari database: {str(e)}")
             
 
     with tab_portfolio:
@@ -1607,7 +1724,16 @@ if "results" in st.session_state and st.session_state["results"]:
                     
                     col_btn_add1, col_btn_add2 = st.columns(2)
                     with col_btn_add1:
-                        if st.button("⭐ Add to Watchlist", use_container_width=True):
+                        # Watchlist addition plan-based limits
+                        allowed_to_add = True
+                        if is_free and len(df_watch) >= 3:
+                            allowed_to_add = False
+                            st.error("🔒 Batas Watchlist Tercapai: Akun Free dibatasi maksimal 3 saham. Silakan upgrade ke paid plan.")
+                        elif is_1_mode and len(df_watch) >= 20:
+                            allowed_to_add = False
+                            st.error("🔒 Batas Watchlist Tercapai: Akun 1 Mode dibatasi maksimal 20 saham. Silakan upgrade ke All Mode.")
+                            
+                        if st.button("⭐ Add to Watchlist", use_container_width=True, disabled=not allowed_to_add):
                             added = storage.add_to_watchlist(
                                 st.session_state["username"],
                                 selected_add_ticker,
@@ -1619,32 +1745,41 @@ if "results" in st.session_state and st.session_state["results"]:
                                 st.toast(f"✅ {selected_add_ticker} ditambahkan ke Watchlist!", icon="⭐")
                                 st.rerun()
                     with col_btn_add2:
-                        with st.expander("💸 Catat Log Pembelian Mandiri (Simulasi/Riil)", expanded=False):
-                            buy_date_input = st.date_input("Tanggal Beli:", date.today())
-                            buy_price_input = st.number_input("Harga Beli (Rp):", value=float(ticker_score_data.get('close_price', 0)), step=10.0)
-                            lot_qty_input = st.number_input("Jumlah Lot:", value=1, min_value=1, step=1)
-                            buy_mode_input = st.selectbox(
-                                "Mode Transaksi:",
-                                options=["Swing Trading Mode", "Scalping Mode (Beta)", "Investment Mode"],
-                                index=["Swing Trading Mode", "Scalping Mode (Beta)", "Investment Mode"].index(selected_mode)
-                            )
-                            
-                            if st.button("💸 Simpan Catatan Pembelian", use_container_width=True):
-                                saved_trade = storage.add_real_trade(
-                                    st.session_state["username"],
-                                    selected_add_ticker,
-                                    buy_date_input,
-                                    buy_price_input,
-                                    lot_qty_input,
-                                    ticker_score_data,
-                                    user_notes_add,
-                                    analysis_mode=buy_mode_input
+                        if is_free:
+                            st.info("🔒 Fitur Terkunci: Simulasi portofolio hanya terbuka untuk paid user (1 Mode / All Mode).")
+                        else:
+                            # 1 Mode limits to 5 total transactions
+                            portfolio_locked = False
+                            if is_1_mode and len(df_eval) >= 5:
+                                portfolio_locked = True
+                                st.error("🔒 Batas Transaksi Tercapai: Akun 1 Mode dibatasi maksimal 5 transaksi. Silakan upgrade ke All Mode.")
+                                
+                            with st.expander("💸 Catat Log Pembelian Mandiri (Simulasi/Riil)", expanded=False):
+                                buy_date_input = st.date_input("Tanggal Beli:", date.today())
+                                buy_price_input = st.number_input("Harga Beli (Rp):", value=float(ticker_score_data.get('close_price', 0)), step=10.0)
+                                lot_qty_input = st.number_input("Jumlah Lot:", value=1, min_value=1, step=1)
+                                buy_mode_input = st.selectbox(
+                                    "Mode Transaksi:",
+                                    options=["Swing Trading Mode", "Scalping Mode (Beta)", "Investment Mode"],
+                                    index=["Swing Trading Mode", "Scalping Mode (Beta)", "Investment Mode"].index(selected_mode)
                                 )
-                                if saved_trade:
-                                    st.toast(f"💸 Log Pembelian Mandiri {selected_add_ticker} berhasil dicatat!", icon="✅")
-                                    if "portfolio_evaluated" in st.session_state:
-                                        del st.session_state["portfolio_evaluated"]
-                                    st.rerun()
+                                
+                                if st.button("💸 Simpan Catatan Pembelian", use_container_width=True, disabled=portfolio_locked):
+                                    saved_trade = storage.add_real_trade(
+                                        st.session_state["username"],
+                                        selected_add_ticker,
+                                        buy_date_input,
+                                        buy_price_input,
+                                        lot_qty_input,
+                                        ticker_score_data,
+                                        user_notes_add,
+                                        analysis_mode=buy_mode_input
+                                    )
+                                    if saved_trade:
+                                        st.toast(f"💸 Log Pembelian Mandiri {selected_add_ticker} berhasil dicatat!", icon="✅")
+                                        if "portfolio_evaluated" in st.session_state:
+                                            del st.session_state["portfolio_evaluated"]
+                                        st.rerun()
                                     
         # 3. WATCHLIST TABLE
         col_w1, col_w2 = st.columns([2, 1])
@@ -2095,6 +2230,32 @@ if "results" in st.session_state and st.session_state["results"]:
                     mime="text/csv",
                     use_container_width=True
                 )
+
+    with tab_telegram:
+        st.header("📢 Smart Saham Premium Telegram Group")
+        st.write("Akses ke grup Telegram Premium eksklusif untuk mendapatkan notifikasi instan langsung di handphone Anda.")
+        
+        # Check active plan
+        is_free = (st.session_state["user_plan"] == "Free")
+        
+        if is_free:
+            st.markdown("""
+            <div class="glass-card" style="border-top: 4px solid #ef4444; padding:35px; text-align:center; margin-top:20px; margin-bottom:20px;">
+                <h3 style="color:#ef4444; margin-top:0;">🔒 Grup Telegram Premium Terkunci</h3>
+                <p style="color:#cbd5e1; font-size:1.0rem;">Grup Telegram Premium hanya tersedia untuk pengguna berbayar (paket 1 Mode atau All Mode).</p>
+                <p style="color:#94a3b8; font-size:0.85rem; margin-bottom:20px;">Dapatkan alert sinyal instan, market update, weekly recap, dan diskusi edukatif di grup eksklusif kami.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            st.button("👑 Hubungkan Premium (Upgrade ke 1 Mode / All Mode)", key="tg_tab_upgrade_btn", use_container_width=True)
+        else:
+            st.markdown(f"""
+            <div class="glass-card" style="border-top: 4px solid #10b981; padding:35px; text-align:center; margin-top:20px; margin-bottom:20px;">
+                <h3 style="color:#10b981; margin-top:0;">🎉 Akses Grup Telegram Premium Aktif!</h3>
+                <p style="color:#cbd5e1; font-size:1.0rem;">Sebagai pelanggan berbayar (<b>{st.session_state["user_plan"]}</b>), Anda memiliki hak akses penuh ke <b>Smart Saham Premium Telegram Group</b>.</p>
+                <p style="color:#94a3b8; font-size:0.85rem; margin-bottom:25px;">Nikmati alert sinyal otomatis, pembaruan sektoral, weekly recap, dan edukasi singkat yang sama untuk seluruh member paid.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            st.link_button("💬 Gabung ke Grup Telegram Premium", url="https://t.me/joinchat/mock_premium_group_link", use_container_width=True)
 
     with tab_social:
         st.header("📢 Social Share Card & Exit Report")
