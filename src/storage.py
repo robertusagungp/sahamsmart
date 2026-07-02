@@ -85,7 +85,7 @@ class AnalysisStorage:
                 Column('password_hash', String(100), nullable=False),
                 Column('email', String(100), nullable=True),
                 Column('created_at', DateTime, default=datetime.utcnow),
-                Column('plan', String(30), default='Smart Saham All Access'),
+                Column('plan', String(30), default='Smart Saham Radar Free'),
                 Column('active_mode', String(50), default='Swing Trading Mode'),
                 Column('role', String(20), default='customer')
             )
@@ -330,7 +330,7 @@ class AnalysisStorage:
         username = username.strip().lower()
         # Default fallback
         profile = {
-            "plan": "Smart Saham All Access", 
+            "plan": "Smart Saham Radar Free", 
             "active_mode": "Swing Trading Mode", 
             "role": "admin" if username == "fra" else "customer"
         }
@@ -345,7 +345,7 @@ class AnalysisStorage:
                         {"u": username}
                     ).fetchone()
                     if result:
-                        profile["plan"] = result[0] or "Smart Saham All Access"
+                        profile["plan"] = result[0] or "Smart Saham Radar Free"
                         profile["active_mode"] = result[1] or "Swing Trading Mode"
                         profile["role"] = result[2] or ("admin" if username == "fra" else "customer")
             except Exception as e:
@@ -358,7 +358,7 @@ class AnalysisStorage:
                 if not df_users.empty:
                     # check if cols exist
                     if 'plan' not in df_users.columns:
-                        df_users['plan'] = 'Smart Saham All Access'
+                        df_users['plan'] = 'Smart Saham Radar Free'
                     if 'active_mode' not in df_users.columns:
                         df_users['active_mode'] = 'Swing Trading Mode'
                     if 'role' not in df_users.columns:
@@ -366,7 +366,7 @@ class AnalysisStorage:
                     
                     match = df_users[df_users['username'].astype(str).str.lower() == username]
                     if not match.empty:
-                        profile["plan"] = match.iloc[0].get("plan", "Smart Saham All Access")
+                        profile["plan"] = match.iloc[0].get("plan", "Smart Saham Radar Free")
                         profile["active_mode"] = match.iloc[0].get("active_mode", "Swing Trading Mode")
                         profile["role"] = match.iloc[0].get("role", "admin" if username == "fra" else "customer")
             except Exception as e:
@@ -414,7 +414,7 @@ class AnalysisStorage:
                 df_users = pd.read_csv(self.users_csv_path)
                 if not df_users.empty:
                     if 'plan' not in df_users.columns:
-                        df_users['plan'] = 'Smart Saham All Access'
+                        df_users['plan'] = 'Smart Saham Radar Free'
                     if 'active_mode' not in df_users.columns:
                         df_users['active_mode'] = 'Swing Trading Mode'
                     if 'role' not in df_users.columns:
