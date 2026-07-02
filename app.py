@@ -674,7 +674,7 @@ if selected_preset == "Kustom (Pilih Manual)":
     selected_tickers = st.multiselect(
         "Pilih Saham (Bisa multi-select):",
         options=list(IDX_STOCKS.keys()),
-        default=["BBCA.JK"],
+        default=["BBRI.JK"],
         format_func=lambda x: f"{x.split('.')[0]} - {IDX_STOCKS.get(x, x)}"
     )
 elif selected_preset == "Ketik Ticker Manual":
