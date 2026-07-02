@@ -1559,6 +1559,7 @@ if "results" in st.session_state and st.session_state["results"]:
             with stat_tabs[2]:
                 st.markdown("##### 🔍 Analisis Sektoral, Akurasi Sinyal, & Profit Factor")
                 
+                df_stocks_db = load_stock_database_df()
                 best_sector_str = "N/A"
                 worst_sector_str = "N/A"
                 
