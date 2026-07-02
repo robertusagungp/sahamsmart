@@ -513,6 +513,8 @@ if should_trigger:
                 "invalidation_point": score_data.get("invalidation_point", "N/A"),
                 "risk_level": score_data.get("risk_level", "Medium"),
                 "time_horizon": score_data.get("time_horizon", "N/A"),
+                "fair_value_range": score_data.get("fair_value_range", "N/A"),
+                "margin_of_safety": score_data.get("margin_of_safety", "N/A"),
                 
                 # Support/Resistance indicators
                 "support_20d": indicators["support_20d"],
@@ -694,8 +696,8 @@ if "results" in st.session_state and st.session_state["results"]:
                     "ROE": f"{fin.get('ROE', 10.0):.1f}%",
                     "DER": f"{fin.get('DER', 1.0):.2f}",
                     "Net Margin": f"{fin.get('net_margin', 10.0):.1f}%",
-                    "Fair Value Range": fin.get("fair_value_range", "N/A"),
-                    "Margin of Safety": fin.get("margin_of_safety", "N/A"),
+                    "Fair Value Range": r.get("fair_value_range", "N/A"),
+                    "Margin of Safety": r.get("margin_of_safety", "N/A"),
                     "Governance Risk": fin.get("governance_risk", "Low"),
                     "Final Score": r["score"],
                     "Signal": r["recommendation"]
