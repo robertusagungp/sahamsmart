@@ -388,9 +388,12 @@ if "last_selected_tickers" not in st.session_state:
     st.session_state["last_selected_tickers"] = []
 if "last_history_period" not in st.session_state:
     st.session_state["last_history_period"] = "1y"
+if "last_selected_mode" not in st.session_state:
+    st.session_state["last_selected_mode"] = "Swing Trading Mode"
 
 tickers_changed = set(selected_tickers) != set(st.session_state["last_selected_tickers"])
 period_changed = history_period != st.session_state["last_history_period"]
+mode_changed = selected_mode != st.session_state["last_selected_mode"]
 
 should_trigger = False
 is_large_batch = len(selected_tickers) > 120
@@ -400,7 +403,7 @@ if "results" not in st.session_state:
         should_trigger = True
 elif run_analysis:
     should_trigger = True
-elif (tickers_changed or period_changed) and not is_large_batch:
+elif (tickers_changed or period_changed or mode_changed) and not is_large_batch:
     should_trigger = True
 
 if "results" not in st.session_state and not should_trigger:
@@ -409,6 +412,7 @@ if "results" not in st.session_state and not should_trigger:
 if should_trigger:
     st.session_state["last_selected_tickers"] = selected_tickers
     st.session_state["last_history_period"] = history_period
+    st.session_state["last_selected_mode"] = selected_mode
     
     with st.spinner("Menarik data terupdate & memproses indikator teknikal..."):
         all_results = []
