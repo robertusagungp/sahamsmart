@@ -254,8 +254,8 @@ class AnalysisStorage:
                         
                     # Insert user
                     conn.execute(
-                        text("INSERT INTO users (username, password_hash, email, created_at, plan, active_mode) VALUES (:u, :p, :e, :c, 'All Mode', 'Swing Trading Mode')"),
-                        {"u": username, "p": password_hash, "e": email, "c": created_at}
+                        text("INSERT INTO users (username, password_hash, email, created_at, plan, active_mode, role) VALUES (:u, :p, :e, :c, 'Smart Saham Radar Free', 'Swing Trading Mode', :r)"),
+                        {"u": username, "p": password_hash, "e": email, "c": created_at, "r": "admin" if username == "fra" else "customer"}
                     )
                 return {"success": True, "message": "Registrasi berhasil! Silakan login."}
             except Exception as e:
@@ -270,15 +270,16 @@ class AnalysisStorage:
                 if not df_users.empty and username in df_users['username'].astype(str).str.lower().values:
                     return {"success": False, "message": "Username sudah terdaftar."}
             else:
-                df_users = pd.DataFrame(columns=['username', 'password_hash', 'email', 'created_at', 'plan', 'active_mode'])
+                df_users = pd.DataFrame(columns=['username', 'password_hash', 'email', 'created_at', 'plan', 'active_mode', 'role'])
                 
             new_user = pd.DataFrame([{
                 'username': username,
                 'password_hash': password_hash,
                 'email': email,
                 'created_at': created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                'plan': 'All Mode',
-                'active_mode': 'Swing Trading Mode'
+                'plan': 'Smart Saham Radar Free',
+                'active_mode': 'Swing Trading Mode',
+                'role': 'admin' if username == "fra" else 'customer'
             }])
             df_users = pd.concat([df_users, new_user], ignore_index=True)
             df_users.to_csv(self.users_csv_path, index=False)
