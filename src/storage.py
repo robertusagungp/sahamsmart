@@ -85,8 +85,9 @@ class AnalysisStorage:
                 Column('password_hash', String(100), nullable=False),
                 Column('email', String(100), nullable=True),
                 Column('created_at', DateTime, default=datetime.utcnow),
-                Column('plan', String(20), default='All Mode'),
-                Column('active_mode', String(50), default='Swing Trading Mode')
+                Column('plan', String(30), default='Smart Saham All Access'),
+                Column('active_mode', String(50), default='Swing Trading Mode'),
+                Column('role', String(20), default='customer')
             )
             
             # 3. User Activity Logs Table
@@ -183,20 +184,42 @@ class AnalysisStorage:
                 except Exception as ex:
                     print(f"Migration warning: {ex}")
                     
-            # Self-healing migration for users table plan and active_mode
+            # Self-healing migration for users table plan, active_mode, and role
             try:
                 from sqlalchemy import text
                 with self.engine.begin() as conn:
-                    conn.execute(text("SELECT plan FROM users LIMIT 1"))
+                    conn.execute(text("SELECT role FROM users LIMIT 1"))
             except Exception:
                 try:
                     from sqlalchemy import text
                     with self.engine.begin() as conn:
-                        conn.execute(text("ALTER TABLE users ADD COLUMN plan VARCHAR(20) DEFAULT 'All Mode'"))
-                        conn.execute(text("ALTER TABLE users ADD COLUMN active_mode VARCHAR(50) DEFAULT 'Swing Trading Mode'"))
-                        print("Migration: plan and active_mode columns successfully added to users table.")
+                        # Attempt to add columns one by one to prevent migration crashes
+                        try:
+                            conn.execute(text("ALTER TABLE users ADD COLUMN plan VARCHAR(30) DEFAULT 'Smart Saham All Access'"))
+                        except Exception:
+                            pass
+                        try:
+                            conn.execute(text("ALTER TABLE users ADD COLUMN active_mode VARCHAR(50) DEFAULT 'Swing Trading Mode'"))
+                        except Exception:
+                            pass
+                        try:
+                            conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(20) DEFAULT 'customer'"))
+                        except Exception:
+                            pass
+                        print("Migration: users table columns updated successfully.")
                 except Exception as ex:
-                    print(f"Migration warning for users table: {ex}")
+                    print(f"Migration warning for users table columns: {ex}")
+
+            # Run persistent data migration (update admin roles and convert plan values)
+            try:
+                from sqlalchemy import text
+                with self.engine.begin() as conn:
+                    conn.execute(text("UPDATE users SET role = 'admin' WHERE LOWER(username) = 'fra'"))
+                    conn.execute(text("UPDATE users SET plan = 'Smart Saham All Access' WHERE plan = 'All Mode' OR plan = 'All Mode Plan'"))
+                    conn.execute(text("UPDATE users SET plan = 'Smart Saham Focus Mode' WHERE plan = '1 Mode' OR plan = '1 Mode Plan'"))
+                    conn.execute(text("UPDATE users SET plan = 'Smart Saham Radar Free' WHERE plan = 'Free' OR plan = 'Free Plan'"))
+            except Exception as ex:
+                print(f"Data migration warning: {ex}")
                     
             print("Database tables initialized successfully.")
         except Exception as e:
@@ -301,11 +324,15 @@ class AnalysisStorage:
 
     def get_user_profile(self, username: str) -> Dict[str, Any]:
         """
-        Retrieves user plan and active_mode.
+        Retrieves user plan, active_mode, and role.
         """
         username = username.strip().lower()
         # Default fallback
-        profile = {"plan": "All Mode", "active_mode": "Swing Trading Mode"}
+        profile = {
+            "plan": "Smart Saham All Access", 
+            "active_mode": "Swing Trading Mode", 
+            "role": "admin" if username == "fra" else "customer"
+        }
         
         # 1. SQL Database Fetch
         if self.engine:
@@ -313,12 +340,13 @@ class AnalysisStorage:
                 from sqlalchemy import text
                 with self.engine.connect() as conn:
                     result = conn.execute(
-                        text("SELECT plan, active_mode FROM users WHERE LOWER(username) = :u"),
+                        text("SELECT plan, active_mode, role FROM users WHERE LOWER(username) = :u"),
                         {"u": username}
                     ).fetchone()
                     if result:
-                        profile["plan"] = result[0] or "All Mode"
+                        profile["plan"] = result[0] or "Smart Saham All Access"
                         profile["active_mode"] = result[1] or "Swing Trading Mode"
+                        profile["role"] = result[2] or ("admin" if username == "fra" else "customer")
             except Exception as e:
                 print(f"Error fetching user profile from DB: {str(e)}")
                 
@@ -329,24 +357,40 @@ class AnalysisStorage:
                 if not df_users.empty:
                     # check if cols exist
                     if 'plan' not in df_users.columns:
-                        df_users['plan'] = 'All Mode'
+                        df_users['plan'] = 'Smart Saham All Access'
                     if 'active_mode' not in df_users.columns:
                         df_users['active_mode'] = 'Swing Trading Mode'
+                    if 'role' not in df_users.columns:
+                        df_users['role'] = 'customer'
                     
                     match = df_users[df_users['username'].astype(str).str.lower() == username]
                     if not match.empty:
-                        profile["plan"] = match.iloc[0].get("plan", "All Mode")
+                        profile["plan"] = match.iloc[0].get("plan", "Smart Saham All Access")
                         profile["active_mode"] = match.iloc[0].get("active_mode", "Swing Trading Mode")
+                        profile["role"] = match.iloc[0].get("role", "admin" if username == "fra" else "customer")
             except Exception as e:
                 print(f"CSV profile fetch error: {str(e)}")
                 
+        # Normalization of old names on the fly
+        plan_map = {
+            "All Mode": "Smart Saham All Access",
+            "All Mode Plan": "Smart Saham All Access",
+            "1 Mode": "Smart Saham Focus Mode",
+            "1 Mode Plan": "Smart Saham Focus Mode",
+            "Free": "Smart Saham Radar Free",
+            "Free Plan": "Smart Saham Radar Free"
+        }
+        profile["plan"] = plan_map.get(profile["plan"], profile["plan"])
         return profile
 
-    def update_user_profile(self, username: str, plan: str, active_mode: str) -> bool:
+    def update_user_profile(self, username: str, plan: str, active_mode: str, role: Optional[str] = None) -> bool:
         """
-        Updates user plan and active_mode in DB and CSV.
+        Updates user plan, active_mode, and role in DB and CSV.
         """
         username = username.strip().lower()
+        if role is None:
+            role = "admin" if username == "fra" else "customer"
+            
         success_db = False
         success_csv = False
         
@@ -356,8 +400,8 @@ class AnalysisStorage:
                 from sqlalchemy import text
                 with self.engine.begin() as conn:
                     conn.execute(
-                        text("UPDATE users SET plan = :plan, active_mode = :mode WHERE LOWER(username) = :u"),
-                        {"plan": plan, "mode": active_mode, "u": username}
+                        text("UPDATE users SET plan = :plan, active_mode = :mode, role = :role WHERE LOWER(username) = :u"),
+                        {"plan": plan, "mode": active_mode, "role": role, "u": username}
                     )
                 success_db = True
             except Exception as e:
@@ -369,15 +413,18 @@ class AnalysisStorage:
                 df_users = pd.read_csv(self.users_csv_path)
                 if not df_users.empty:
                     if 'plan' not in df_users.columns:
-                        df_users['plan'] = 'All Mode'
+                        df_users['plan'] = 'Smart Saham All Access'
                     if 'active_mode' not in df_users.columns:
                         df_users['active_mode'] = 'Swing Trading Mode'
+                    if 'role' not in df_users.columns:
+                        df_users['role'] = 'customer'
                         
                     # Find index
                     idx = df_users[df_users['username'].astype(str).str.lower() == username].index
                     if not idx.empty:
                         df_users.loc[idx, 'plan'] = plan
                         df_users.loc[idx, 'active_mode'] = active_mode
+                        df_users.loc[idx, 'role'] = role
                         df_users.to_csv(self.users_csv_path, index=False)
                         success_csv = True
             except Exception as e:

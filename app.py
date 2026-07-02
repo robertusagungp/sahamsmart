@@ -230,9 +230,11 @@ if "username" not in st.session_state:
 if "show_auth" not in st.session_state:
     st.session_state["show_auth"] = False
 if "user_plan" not in st.session_state:
-    st.session_state["user_plan"] = "Free"
+    st.session_state["user_plan"] = "Smart Saham Radar Free"
 if "user_selected_mode" not in st.session_state:
     st.session_state["user_selected_mode"] = "Swing Trading Mode"
+if "user_role" not in st.session_state:
+    st.session_state["user_role"] = "customer"
 
 # Render landing page or login portal if not logged in
 if not st.session_state["logged_in"]:
@@ -270,6 +272,7 @@ if not st.session_state["logged_in"]:
                         profile = storage.get_user_profile(login_username)
                         st.session_state["user_plan"] = profile["plan"]
                         st.session_state["user_selected_mode"] = profile["active_mode"]
+                        st.session_state["user_role"] = profile["role"]
                         # Log login activity
                         storage.log_activity(login_username, "LOGIN")
                         st.success("Login sukses! Membuka dashboard...")
@@ -564,19 +567,16 @@ if not st.session_state["logged_in"]:
             </div>
             """, unsafe_allow_html=True)
             
-        st.markdown("<br><br>", unsafe_allow_html=True)
-        st.markdown('<div class="header-divider"></div>', unsafe_allow_html=True)
-        
         # 10. Pricing Teaser
         st.subheader("💎 Paket Layanan Smart Saham")
         col_p1, col_p2, col_p3 = st.columns(3)
         with col_p1:
             st.markdown("""
             <div class="glass-card" style="border-top: 4px solid #94a3b8; min-height: 380px;">
-                <h4 style="margin-top:0; color:#94a3b8;">🆓 Paket FREE</h4>
+                <h4 style="margin-top:0; color:#94a3b8;">🆓 Smart Saham Radar Free</h4>
                 <h2 style="margin-top:5px; margin-bottom:5px;">Rp 0</h2>
-                <p style="color:#64748b; font-size:0.8rem; margin-bottom:15px;">Mencoba Value Awal Aplikasi</p>
-                <ul style="color:#cbd5e1; font-size:0.82rem; padding-left:15px; line-height:1.5; margin-top:10px;">
+                <p style="color:#64748b; font-size:0.8rem; margin-bottom:15px;">Lihat 3 saham radar hari ini secara gratis.</p>
+                <ul style="color:#cbd5e1; font-size:0.82rem; padding-left:15px; line-height:1.5; margin-top:10px; min-height: 190px;">
                     <li>Preview 3 saham berskor tertinggi per hari</li>
                     <li>Snapshot tren pasar & IHSG harian</li>
                     <li>Watchlist maksimal 3 saham</li>
@@ -586,14 +586,17 @@ if not st.session_state["logged_in"]:
                 </ul>
             </div>
             """, unsafe_allow_html=True)
+            if st.button("Mulai Gratis", key="btn_p1_cta", use_container_width=True):
+                st.session_state["show_auth"] = True
+                st.rerun()
         with col_p2:
             st.markdown("""
             <div class="glass-card" style="border-top: 4px solid #3b82f6; min-height: 380px;">
-                <h4 style="margin-top:0; color:#3b82f6;">📈 Paket 1 MODE</h4>
+                <h4 style="margin-top:0; color:#3b82f6;">📈 Smart Saham Focus Mode</h4>
                 <h2 style="margin-top:5px; margin-bottom:5px;">Rp 89.000 <span style="font-size:0.8rem; font-weight:normal; color:#94a3b8;">/ bln</span></h2>
-                <p style="color:#64748b; font-size:0.8rem; margin-bottom:15px;">Rp 890.000 / tahun (Hemat 2 bulan)</p>
-                <ul style="color:#cbd5e1; font-size:0.82rem; padding-left:15px; line-height:1.5; margin-top:10px;">
-                    <li><b>Akses Penuh 1 Mode Pilihan:</b> Scalping, Swing, ATAU Investasi</li>
+                <p style="color:#64748b; font-size:0.8rem; margin-bottom:15px;">Fokus pada 1 mode yang paling sesuai dengan gaya trading kamu.</p>
+                <ul style="color:#cbd5e1; font-size:0.82rem; padding-left:15px; line-height:1.5; margin-top:10px; min-height: 190px;">
+                    <li><b>Akses Penuh 1 Mode Pilihan:</b> Scalping, Swing, atau Investasi</li>
                     <li>Full reasoning & setup entry/exit mode pilihan</li>
                     <li>Watchlist maksimal 20 saham</li>
                     <li>Log riwayat sinyal hingga 30 hari</li>
@@ -602,14 +605,17 @@ if not st.session_state["logged_in"]:
                 </ul>
             </div>
             """, unsafe_allow_html=True)
+            if st.button("Pilih 1 Mode", key="btn_p2_cta", use_container_width=True):
+                st.session_state["show_auth"] = True
+                st.rerun()
         with col_p3:
             st.markdown("""
             <div class="glass-card" style="border-top: 4px solid #f59e0b; min-height: 380px; background: rgba(245, 158, 11, 0.03);">
-                <h4 style="margin-top:0; color:#f59e0b;">👑 ALL MODE <span style="background-color:#d97706; color:#ffffff; font-size:0.7rem; padding:2px 8px; border-radius:10px; font-weight:bold; margin-left:5px; text-transform:uppercase;">Best Value</span></h4>
+                <h4 style="margin-top:0; color:#f59e0b;">👑 Smart Saham All Access <span style="background-color:#d97706; color:#ffffff; font-size:0.7rem; padding:2px 8px; border-radius:10px; font-weight:bold; margin-left:5px; text-transform:uppercase;">Best Value</span></h4>
                 <h2 style="margin-top:5px; margin-bottom:5px; color:#f59e0b;">Rp 179.000 <span style="font-size:0.8rem; font-weight:normal; color:#94a3b8;">/ bln</span></h2>
-                <p style="color:#64748b; font-size:0.8rem; margin-bottom:15px;">Rp 1.790.000 / tahun (Hemat 2 bulan)</p>
-                <ul style="color:#cbd5e1; font-size:0.82rem; padding-left:15px; line-height:1.5; margin-top:10px;">
-                    <li><b>Akses Penuh Ke Seluruh Mode Analisis</b> (Scalping, Swing, & Investasi)</li>
+                <p style="color:#64748b; font-size:0.8rem; margin-bottom:15px;">Buka semua mode analisa dalam satu paket.</p>
+                <ul style="color:#cbd5e1; font-size:0.82rem; padding-left:15px; line-height:1.5; margin-top:10px; min-height: 190px;">
+                    <li><b>Akses Penuh ke Seluruh Mode Analisis</b> (Scalping, Swing, & Investasi)</li>
                     <li>Full reasoning & setup entry/exit semua mode</li>
                     <li>Watchlist Tanpa Batas (Unlimited)</li>
                     <li>Log riwayat sinyal penuh hingga 90 hari</li>
@@ -618,6 +624,9 @@ if not st.session_state["logged_in"]:
                 </ul>
             </div>
             """, unsafe_allow_html=True)
+            if st.button("Upgrade ke All Access", key="btn_p3_cta", use_container_width=True, type="primary"):
+                st.session_state["show_auth"] = True
+                st.rerun()
             
         st.markdown("<br><br>", unsafe_allow_html=True)
         
@@ -651,25 +660,25 @@ with col_header_title:
         st.caption("Aplikasi ini bukan platform pemberi rekomendasi investasi final untuk beli/jual saham, melainkan platform penyaring data (*AI Stock Screening*) & pemantauan risiko (*Risk Monitoring*) untuk membantu riset mandiri Anda.")
 with col_header_user:
     st.write("")
-    is_admin = st.session_state["username"] == "fra"
-    role_label = "Admin" if is_admin else "Customer"
+    db_role = st.session_state.get("user_role", "customer")
+    role_label = "Admin" if db_role == "admin" else "Customer"
     st.markdown(f"👤 Akun: **{st.session_state['username'].upper()}** `({role_label})`")
     
     # Render static user plan info card (no selectboxes)
-    plan_name = st.session_state.get("user_plan", "All Mode")
+    plan_name = st.session_state.get("user_plan", "Smart Saham All Access")
     plan_mode = st.session_state.get("user_selected_mode", "Swing Trading Mode")
     
     plan_badge_color = "#3b82f6" # Blue for 1 Mode
-    if plan_name == "Free":
+    if plan_name == "Smart Saham Radar Free":
         plan_badge_color = "#94a3b8" # Grey
-    elif plan_name == "All Mode":
+    elif plan_name == "Smart Saham All Access":
         plan_badge_color = "#f59e0b" # Orange/Gold
         
     st.markdown(f"""
     <div style="background: rgba(255,255,255,0.05); padding: 10px 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 12px;">
         <span style="font-size:0.75rem; color:#94a3b8; display:block; margin-bottom:2px; text-transform:uppercase; letter-spacing:0.5px;">Paket Layanan</span>
         <span style="font-size:1.0rem; font-weight:bold; color:{plan_badge_color};">{plan_name}</span>
-        {"<span style='font-size:0.75rem; color:#cbd5e1; display:block; margin-top:2px;'>Mode: " + plan_mode + "</span>" if plan_name == "1 Mode" else ""}
+        {"<span style='font-size:0.75rem; color:#cbd5e1; display:block; margin-top:2px;'>Mode: " + plan_mode + "</span>" if plan_name == "Smart Saham Focus Mode" else ""}
     </div>
     """, unsafe_allow_html=True)
         
@@ -1142,8 +1151,8 @@ if "results" in st.session_state and st.session_state["results"]:
         df_table_filtered = df_table[df_table['Signal'].apply(clean_signal_name).isin(signal_filter)].reset_index(drop=True)
         
         # Apply dynamic plan-based masking and row slicing
-        is_free = (st.session_state["user_plan"] == "Free")
-        is_1_mode = (st.session_state["user_plan"] == "1 Mode")
+        is_free = (st.session_state["user_plan"] == "Smart Saham Radar Free")
+        is_1_mode = (st.session_state["user_plan"] == "Smart Saham Focus Mode")
         user_unlocked_mode = st.session_state.get("user_selected_mode", "Swing Trading Mode")
         
         if is_free:
@@ -1162,7 +1171,7 @@ if "results" in st.session_state and st.session_state["results"]:
                 mask_cols = ["Entry Area", "SL", "TP1", "TP2", "Fair Value Range", "Margin of Safety", "Main Reason", "Risk Reward", "Risk Note"]
                 for col in mask_cols:
                     if col in df_table_filtered.columns:
-                        df_table_filtered[col] = "🔒 Buka di All Mode"
+                        df_table_filtered[col] = "🔒 Buka di All Access"
         
         def style_recommendation(val):
             val_clean = clean_signal_name(val)
@@ -1215,7 +1224,7 @@ if "results" in st.session_state and st.session_state["results"]:
             paywall_reason = "Detail analisis komprehensif, grafik interaktif, setup parameter (entry, target, invalidasi), dan profil risiko lengkap hanya terbuka untuk pelanggan berbayar (1 Mode atau All Mode)."
         elif is_1_mode and selected_mode != user_unlocked_mode:
             mode_is_locked = True
-            paywall_reason = f"Mode ini dikunci karena Anda berlangganan paket 1 Mode khusus untuk **{user_unlocked_mode}**. Silakan upgrade ke paket All Mode untuk membuka detail seluruh mode analisis."
+            paywall_reason = f"Mode ini dikunci karena Anda berlangganan paket Smart Saham Focus Mode khusus untuk **{user_unlocked_mode}**. Silakan upgrade ke paket Smart Saham All Access untuk membuka detail seluruh mode analisis."
 
         if mode_is_locked:
             st.markdown(f'''
@@ -1610,8 +1619,8 @@ if "results" in st.session_state and st.session_state["results"]:
         st.subheader("📜 Log Riwayat Analisis Harian")
         
         # Calculate limits based on active plan
-        is_free = (st.session_state["user_plan"] == "Free")
-        is_1_mode = (st.session_state["user_plan"] == "1 Mode")
+        is_free = (st.session_state["user_plan"] == "Smart Saham Radar Free")
+        is_1_mode = (st.session_state["user_plan"] == "Smart Saham Focus Mode")
         limit_days = 3 if is_free else (30 if is_1_mode else 90)
         
         st.write(f"Histori data screening harian. Paket Anda ({st.session_state['user_plan']}) membatasi tampilan hingga **{limit_days} hari terakhir**.")
@@ -1723,10 +1732,10 @@ if "results" in st.session_state and st.session_state["results"]:
                         allowed_to_add = True
                         if is_free and len(df_watch) >= 3:
                             allowed_to_add = False
-                            st.error("🔒 Batas Watchlist Tercapai: Akun Free dibatasi maksimal 3 saham. Silakan upgrade ke paid plan.")
+                            st.error("🔒 Batas Watchlist Tercapai: Akun Smart Saham Radar Free dibatasi maksimal 3 saham. Silakan upgrade ke paid plan.")
                         elif is_1_mode and len(df_watch) >= 20:
                             allowed_to_add = False
-                            st.error("🔒 Batas Watchlist Tercapai: Akun 1 Mode dibatasi maksimal 20 saham. Silakan upgrade ke All Mode.")
+                            st.error("🔒 Batas Watchlist Tercapai: Akun Smart Saham Focus Mode dibatasi maksimal 20 saham. Silakan upgrade ke All Mode.")
                             
                         if st.button("⭐ Add to Watchlist", use_container_width=True, disabled=not allowed_to_add):
                             added = storage.add_to_watchlist(
@@ -1741,13 +1750,13 @@ if "results" in st.session_state and st.session_state["results"]:
                                 st.rerun()
                     with col_btn_add2:
                         if is_free:
-                            st.info("🔒 Fitur Terkunci: Simulasi portofolio hanya terbuka untuk paid user (1 Mode / All Mode).")
+                            st.info("🔒 Fitur Terkunci: Simulasi portofolio hanya terbuka untuk paid user (Smart Saham Focus Mode / All Access).")
                         else:
                             # 1 Mode limits to 5 total transactions
                             portfolio_locked = False
                             if is_1_mode and len(df_eval) >= 5:
                                 portfolio_locked = True
-                                st.error("🔒 Batas Transaksi Tercapai: Akun 1 Mode dibatasi maksimal 5 transaksi. Silakan upgrade ke All Mode.")
+                                st.error("🔒 Batas Transaksi Tercapai: Akun Smart Saham Focus Mode dibatasi maksimal 5 transaksi. Silakan upgrade ke All Mode.")
                                 
                             with st.expander("💸 Catat Log Pembelian Mandiri (Simulasi/Riil)", expanded=False):
                                 buy_date_input = st.date_input("Tanggal Beli:", date.today())
@@ -2231,17 +2240,17 @@ if "results" in st.session_state and st.session_state["results"]:
         st.write("Akses ke grup Telegram Premium eksklusif untuk mendapatkan notifikasi instan langsung di handphone Anda.")
         
         # Check active plan
-        is_free = (st.session_state["user_plan"] == "Free")
+        is_free = (st.session_state["user_plan"] == "Smart Saham Radar Free")
         
         if is_free:
             st.markdown("""
             <div class="glass-card" style="border-top: 4px solid #ef4444; padding:35px; text-align:center; margin-top:20px; margin-bottom:20px;">
                 <h3 style="color:#ef4444; margin-top:0;">🔒 Grup Telegram Premium Terkunci</h3>
-                <p style="color:#cbd5e1; font-size:1.0rem;">Grup Telegram Premium hanya tersedia untuk pengguna berbayar (paket 1 Mode atau All Mode).</p>
+                <p style="color:#cbd5e1; font-size:1.0rem;">Grup Telegram Premium hanya tersedia untuk pengguna berbayar (paket Smart Saham Focus Mode atau Smart Saham All Access).</p>
                 <p style="color:#94a3b8; font-size:0.85rem; margin-bottom:20px;">Dapatkan alert sinyal instan, market update, weekly recap, dan diskusi edukatif di grup eksklusif kami.</p>
             </div>
             """, unsafe_allow_html=True)
-            st.button("👑 Hubungkan Premium (Upgrade ke 1 Mode / All Mode)", key="tg_tab_upgrade_btn", use_container_width=True)
+            st.button("👑 Hubungkan Premium (Upgrade ke Focus Mode / All Access)", key="tg_tab_upgrade_btn", use_container_width=True)
         else:
             st.markdown(f"""
             <div class="glass-card" style="border-top: 4px solid #10b981; padding:35px; text-align:center; margin-top:20px; margin-bottom:20px;">
